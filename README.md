@@ -31,7 +31,9 @@ features:
 
    ##### go get github.com/stretchr/testify/
 
-   ​
+5. link Go语言网络层脚手架，获取方式如下
+
+   ##### go get github.com/funny/link
 
 ### Demo示例
 
