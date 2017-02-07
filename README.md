@@ -2,6 +2,18 @@
 
 baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 
+features:
+
+- 内置连接池，具备更高的性能，低延迟 QPS: 5w+
+
+- 支持自动重连功能
+
+- 支持附件发送
+
+- 支持超时功能
+
+  ​
+
 ### 依赖三方库
 
 1. ##### golang-protobuf 针对golang开发支持google protocol  buffer库, 获取方式如下
