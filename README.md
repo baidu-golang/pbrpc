@@ -8,7 +8,7 @@ features:
 - 支持自动重连功能
 - 支持附件发送
 - 支持超时功能
-- 压缩功能，支持GZip与Snappy[TODO]
+- 压缩功能，支持GZip与Snappy
 - 集成内置HTTP管理功能[TODO]
 - Client支持Ha的负载均衡功能[TODO]
   ​
@@ -34,6 +34,10 @@ features:
 5. link Go语言网络层脚手架，获取方式如下
 
    ##### go get github.com/funny/link
+
+6. Snappy压缩类库，获取方式如下
+
+   ##### go get github.com/golang/snappy
 
 ### Demo示例
 
@@ -184,6 +188,9 @@ func (m *DataMessage) GetName() string {
 	serviceName := "echoService"
 	methodName := "echo"
 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+   
+    // 指定压缩算法
+    rpcInvocation.CompressType = proto.Int32(baidurpc.COMPRESS_GZIP)
 
 	message := "say hello from xiemalin中文测试"
 	dm := DataMessage{&message}
@@ -205,3 +212,4 @@ func (m *DataMessage) GetName() string {
 	}
 ```
 
+更多使用示例参见demo
