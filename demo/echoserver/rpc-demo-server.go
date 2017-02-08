@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	baidurpc "github.com/baidu-golang/baidurpc"
+	"github.com/baidu-golang/pbrpc"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -28,17 +28,17 @@ func main() {
 	err := rpcServer.StartAndBlock()
 
 	if err != nil {
-		baidurpc.Error(err)
+		pbrpc.Error(err)
 		os.Exit(-1)
 	}
 
 }
 
-func createRpcServer(port int) *baidurpc.TcpServer {
-	serverMeta := baidurpc.ServerMeta{}
+func createRpcServer(port int) *pbrpc.TcpServer {
+	serverMeta := pbrpc.ServerMeta{}
 	serverMeta.Host = nil
 	serverMeta.Port = Int(port)
-	rpcServer := baidurpc.NewTpcServer(&serverMeta)
+	rpcServer := pbrpc.NewTpcServer(&serverMeta)
 
 	ss := NewSimpleService("echoService", "echo")
 

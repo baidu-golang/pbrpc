@@ -19,7 +19,7 @@
 // DO NOT EDIT!
 
 /*
-Package baidurpc is a generated protocol buffer package.
+Package pbrpc is a generated protocol buffer package.
 
 It is generated from these files:
 	Request.proto
@@ -30,7 +30,7 @@ It has these top-level messages:
 	ChunkInfo
 	RpcMeta
 */
-package baidurpc
+package pbrpc
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -204,10 +204,10 @@ func (m *RpcMeta) GetAuthenticationData() []byte {
 }
 
 func init() {
-	proto.RegisterType((*Request)(nil), "baidurpc.Request")
-	proto.RegisterType((*Response)(nil), "baidurpc.Response")
-	proto.RegisterType((*ChunkInfo)(nil), "baidurpc.ChunkInfo")
-	proto.RegisterType((*RpcMeta)(nil), "baidurpc.RpcMeta")
+	proto.RegisterType((*Request)(nil), "pbrpc.Request")
+	proto.RegisterType((*Response)(nil), "pbrpc.Response")
+	proto.RegisterType((*ChunkInfo)(nil), "pbrpc.ChunkInfo")
+	proto.RegisterType((*RpcMeta)(nil), "pbrpc.RpcMeta")
 }
 
 func init() { proto.RegisterFile("Request.proto", fileDescriptor0) }

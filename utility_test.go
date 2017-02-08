@@ -13,13 +13,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package baidurpc_test
+package pbrpc_test
 
 import (
 	"testing"
 	"time"
 
-	baidurpc "github.com/baidu-golang/baidurpc"
+	pbrpc "github.com/baidu-golang/pbrpc"
 )
 
 func TestTimetookInSeconds(t *testing.T) {
@@ -28,7 +28,7 @@ func TestTimetookInSeconds(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	cost := baidurpc.TimetookInSeconds(now)
+	cost := pbrpc.TimetookInSeconds(now)
 
 	if cost < 1 {
 		t.Error("time took is not acceptable.")

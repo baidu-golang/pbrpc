@@ -1,4 +1,4 @@
-package baidurpc
+package pbrpc
 
 import (
 	"bytes"

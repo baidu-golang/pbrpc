@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package baidurpc
+package pbrpc
 
 import (
 	"errors"
@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/baidu-golang/baidurpc/link"
+	"github.com/baidu-golang/pbrpc/link"
 	"github.com/golang/protobuf/proto"
 )
 

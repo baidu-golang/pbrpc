@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package baidurpc_test
+package pbrpc_test
 
 import (
 	"bytes"
@@ -21,12 +21,12 @@ import (
 	"strings"
 	"testing"
 
-	baidurpc "github.com/baidu-golang/baidurpc"
+	pbrpc "github.com/baidu-golang/pbrpc"
 )
 
 func TestCodecSend(t *testing.T) {
 
-	protocol := &baidurpc.RpcDataPackageProtocol{}
+	protocol := &pbrpc.RpcDataPackageProtocol{}
 
 	buf := new(bytes.Buffer)
 
@@ -36,7 +36,7 @@ func TestCodecSend(t *testing.T) {
 
 	rpcDataPackagecodec.Send(rpcDataPackage)
 
-	r2 := baidurpc.RpcDataPackage{}
+	r2 := pbrpc.RpcDataPackage{}
 	err := r2.ReadIO(buf)
 
 	if err != nil {
@@ -51,7 +51,7 @@ func TestCodecSend(t *testing.T) {
 
 func TestCodecReceive(t *testing.T) {
 
-	protocol := &baidurpc.RpcDataPackageProtocol{}
+	protocol := &pbrpc.RpcDataPackageProtocol{}
 
 	buf := new(bytes.Buffer)
 	// write prepare value to buf
@@ -66,7 +66,7 @@ func TestCodecReceive(t *testing.T) {
 
 	rsp, err := rpcDataPackagecodec.Receive()
 
-	mc := rsp.(*baidurpc.RpcDataPackage).GetMagicCode()
+	mc := rsp.(*pbrpc.RpcDataPackage).GetMagicCode()
 	if !strings.EqualFold(magicCode, mc) {
 		t.Error(fmt.Sprintf("expect magic code is '%s' but actual is '%s'", magicCode, mc))
 	}

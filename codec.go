@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package baidurpc
+package pbrpc
 
 import (
 	"errors"
@@ -23,13 +23,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/baidu-golang/baidurpc/link"
+	"github.com/baidu-golang/pbrpc/link"
 	"github.com/golang/glog"
 )
 
-const REQUIRED_TYPE = "baidurpc.RpcDataPackage"
+const REQUIRED_TYPE = "pbrpc.RpcDataPackage"
 
-var ERR_INVALID_TYPE = errors.New("[codec-001]type mismatch, target type should be 'baidurpc.RpcDataPackage'")
+var ERR_INVALID_TYPE = errors.New("[codec-001]type mismatch, target type should be 'pbrpc.RpcDataPackage'")
 var LOG_CLOSE_CONNECT_INFO = "[codec-100]Do close connection. connection info:%v"
 
 /*

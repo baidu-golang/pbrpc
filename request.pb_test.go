@@ -13,10 +13,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package baidurpc_test
+package pbrpc_test
 
 import (
-	baidurpc "github.com/baidu-golang/baidurpc"
+	pbrpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 	"strings"
 	"testing"
@@ -30,7 +30,7 @@ func TestPropertySetAndGet(t *testing.T) {
 	var methodName string = "ThisAMethodName"
 	var logId int64 = 1
 
-	request := baidurpc.Request{
+	request := pbrpc.Request{
 		ServiceName: &serviceName,
 		MethodName:  &methodName,
 		LogId:       &logId,
@@ -53,7 +53,7 @@ func TestPropertySetAndGet(t *testing.T) {
 		t.Errorf("marshaling error: %s", err.Error())
 	}
 	
-	request2 := new(baidurpc.Request)
+	request2 := new(pbrpc.Request)
 	err = proto.Unmarshal(data, request2)
 	if (err != nil) {
 		t.Errorf("marshaling error: %s", err.Error())

@@ -6,8 +6,7 @@ import (
 	"os"
 	"time"
 
-	baidurpc "github.com/baidu-golang/baidurpc"
-
+	"github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 	pool "github.com/jolestar/go-commons-pool"
 )
@@ -26,7 +25,7 @@ func init() {
 
 func main() {
 
-	url := baidurpc.URL{}
+	url := pbrpc.URL{}
 	url.SetHost(host).SetPort(port)
 
 	timeout := time.Second * 5
@@ -34,7 +33,7 @@ func main() {
 	config := pool.NewDefaultPoolConfig()
 	config.MaxTotal = *parell
 	config.MaxIdle = *parell
-	connection, err := baidurpc.NewTCPConnectionPool(url, &timeout, config)
+	connection, err := pbrpc.NewTCPConnectionPool(url, &timeout, config)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
@@ -71,7 +70,7 @@ func main() {
 	fmt.Println(after - now)
 }
 
-func SendRpc(connection baidurpc.Connection, ch chan int, y int) {
+func SendRpc(connection pbrpc.Connection, ch chan int, y int) {
 	fmt.Println("start go", y)
 	for i := 0; i < *countsPerThread; i++ {
 		doSimpleRPCInvoke(connection, i, y)
@@ -81,10 +80,10 @@ func SendRpc(connection baidurpc.Connection, ch chan int, y int) {
 	ch <- y
 }
 
-func doSimpleRPCInvoke(connection baidurpc.Connection, x, y int) {
+func doSimpleRPCInvoke(connection pbrpc.Connection, x, y int) {
 
 	// create client
-	rpcClient, err := baidurpc.NewRpcCient(connection)
+	rpcClient, err := pbrpc.NewRpcCient(connection)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
@@ -93,10 +92,10 @@ func doSimpleRPCInvoke(connection baidurpc.Connection, x, y int) {
 
 	serviceName := "echoService"
 	methodName := "echo"
-	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+	rpcInvocation := pbrpc.NewRpcInvocation(&serviceName, &methodName)
 
 	// 指定压缩算法
-	rpcInvocation.CompressType = proto.Int32(baidurpc.COMPRESS_GZIP)
+	rpcInvocation.CompressType = proto.Int32(pbrpc.COMPRESS_GZIP)
 
 	message := "say hello from xiemalin中文测试"
 	dm := DataMessage{&message}
