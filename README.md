@@ -1,8 +1,8 @@
 # pbrpc
 
-pbrpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+pbrpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容jprotobuf-rpc-socket: https://github.com/jhunters/Jprotobuf-rpc-socket
 
-features:
+### features:
 
 - 内置连接池，具备更高的性能，低延迟 QPS: 5w+
 - 支持自动重连功能
@@ -163,7 +163,7 @@ func (m *DataMessage) GetName() string {
 
 
 
-### 开发RPC客户端
+#### 开发RPC客户端
 
 ```go
     // 创建链接(本示例使用连接池方式)
