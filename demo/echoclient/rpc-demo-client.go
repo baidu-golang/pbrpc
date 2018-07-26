@@ -14,8 +14,8 @@ import (
 var host = flag.String("host", "localhost", "If non-empty, connect to target host")
 var port = flag.Int("port", 8122, "If non-empty, connect to target host")
 
-var countsPerThread = flag.Int("countsPerThread", 100, "If non-empty, counts per thread to execute default is 100")
-var parell = flag.Int("parell", 5, "If non-empty, concurrent threads to run")
+var countsPerThread = flag.Int("countsPerThread", 1, "If non-empty, counts per thread to execute default is 100")
+var parell = flag.Int("parell", 1, "If non-empty, concurrent threads to run")
 
 func init() {
 	if !flag.Parsed() {
@@ -65,7 +65,7 @@ func main() {
 	}
 	cpt := *countsPerThread
 	pl := *parell
-	fmt.Println("Performance:", cpt*pl/timecost, " requests in secend.")
+	fmt.Println("Performance:", cpt*pl/timecost, " requests in second. time cost ", timecost, "total count ", cpt*pl)
 
 	fmt.Println(after - now)
 }
@@ -74,7 +74,6 @@ func SendRpc(connection pbrpc.Connection, ch chan int, y int) {
 	fmt.Println("start go", y)
 	for i := 0; i < *countsPerThread; i++ {
 		doSimpleRPCInvoke(connection, i, y)
-
 	}
 	fmt.Println("end go", y)
 	ch <- y

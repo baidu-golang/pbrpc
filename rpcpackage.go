@@ -409,7 +409,6 @@ func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
 		compressType := r.GetMeta().GetCompressType()
 		if compressType == COMPRESS_GZIP {
 			r.Data, err = GUNZIP(r.Data)
-
 			if err != nil {
 				return err
 			}

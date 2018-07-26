@@ -23,10 +23,17 @@ func init() {
 
 func main() {
 
+	defer func() {
+
+		err := recover() // final process exception
+		if err != nil {
+			pbrpc.Error(err)
+		}
+
+	}()
+
 	rpcServer := createRpcServer(*port)
-
 	err := rpcServer.StartAndBlock()
-
 	if err != nil {
 		pbrpc.Error(err)
 		os.Exit(-1)
@@ -38,10 +45,9 @@ func createRpcServer(port int) *pbrpc.TcpServer {
 	serverMeta := pbrpc.ServerMeta{}
 	serverMeta.Host = nil
 	serverMeta.Port = Int(port)
+
 	rpcServer := pbrpc.NewTpcServer(&serverMeta)
-
 	ss := NewSimpleService("echoService", "echo")
-
 	rpcServer.Register(ss)
 
 	return rpcServer
@@ -93,7 +99,7 @@ func (ss *SimpleService) DoService(msg proto.Message, attachment []byte, logId *
 		m := msg.(*DataMessage)
 		name = m.Name
 
-		if len(*name) == 0 {
+		if name == nil || len(*name) == 0 {
 			ret = ret + "veryone"
 		} else {
 			ret = ret + *name
