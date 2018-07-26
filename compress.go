@@ -2,13 +2,14 @@ package pbrpc
 
 import (
 	"bytes"
-	"compress/gzip"
 	"io/ioutil"
+
+	gzip "compress/gzip"
 )
 
 func GZIP(b []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	w := gzip.NewWriter(buf)
+	w, _ := gzip.NewWriterLevel(buf, gzip.NoCompression)
 	defer w.Close()
 
 	_, err := w.Write(b)
@@ -29,7 +30,7 @@ func GUNZIP(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer r.Close()
-	undatas, _ := ioutil.ReadAll(r)
 
+	undatas, _ := ioutil.ReadAll(r)
 	return undatas, nil
 }

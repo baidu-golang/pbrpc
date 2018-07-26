@@ -114,9 +114,7 @@ func (session *Session) Receive() (interface{}, error) {
 }
 
 func (session *Session) sendLoop() {
-	defer func() {
-		session.Close()
-	}()
+	defer session.Close()
 	for {
 		select {
 		case msg, ok := <-session.sendChan:
@@ -147,6 +145,7 @@ func (session *Session) Send(msg interface{}) error {
 
 	session.sendMutex.RLock()
 	if session.IsClosed() {
+		session.sendMutex.RUnlock()
 		return SessionClosedError
 	}
 
