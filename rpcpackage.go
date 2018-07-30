@@ -44,9 +44,9 @@ var LOG_INVALID_BYTES = "[marshal-004]Invalid byte array. maybe a broken byte st
 
 1. <Head> with fixed 12 byte length as follow format
 ----------------------------------------------
-| PRPC | MessageSize(int32) | MetaSize(int32) |
+| PRPC | TotalSize(int32) | MetaSize(int32) |
 ----------------------------------------------
-MessageSize = totalSize - 12(Fixed Head Size)
+TotalSize = totalSize
 MetaSize = Meta object size
 
 2. <Meta> body proto description as follow
