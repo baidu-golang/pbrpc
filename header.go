@@ -18,8 +18,6 @@ package pbrpc
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
-	"strconv"
 )
 
 const SIZE = 12
@@ -73,7 +71,7 @@ func intToBytes(i int32) []byte {
 
 func (h *Header) Read(bytes []byte) error {
 	if bytes == nil || len(bytes) != SIZE {
-		return errors.New("invalid parameter 'bytes' size should be  " + strconv.Itoa(SIZE))
+		return nil
 	}
 	h.MagicCode = bytes[0:4]
 	h.MessageSize = int32(binary.BigEndian.Uint32(bytes[4:8]))

@@ -1,6 +1,6 @@
 # pbrpc
 
-pbrpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容jprotobuf-rpc-socket: https://github.com/jhunters/Jprotobuf-rpc-socket
+pbrpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容公司baidurpc标准协议。
 
 ### features:
 

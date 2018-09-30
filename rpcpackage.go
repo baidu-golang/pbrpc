@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 
@@ -28,11 +27,8 @@ import (
 )
 
 // error log info definition
-var ERR_NO_SNAPPY = errors.New("[marshal-002]Snappy compress not support yet.")
 var ERR_IGNORE_ERR = errors.New("[marshal-001]Ingore error")
 var ERR_META = errors.New("[marshal-003]Get nil value from Meta struct after marshal")
-
-var LOG_INVALID_BYTES = "[marshal-004]Invalid byte array. maybe a broken byte stream. Received '%b'"
 
 /*
  Data package for baidu RPC.
@@ -44,9 +40,9 @@ var LOG_INVALID_BYTES = "[marshal-004]Invalid byte array. maybe a broken byte st
 
 1. <Head> with fixed 12 byte length as follow format
 ----------------------------------------------
-| PRPC | TotalSize(int32) | MetaSize(int32) |
+| PRPC | MessageSize(int32) | MetaSize(int32) |
 ----------------------------------------------
-TotalSize = totalSize
+MessageSize = totalSize - 12(Fixed Head Size)
 MetaSize = Meta object size
 
 2. <Meta> body proto description as follow
@@ -81,13 +77,20 @@ messsage ChunkInfo {
 4. <Attachment> attachment body data message
 
 */
+
+/*
+  RPC package struct
+*/
 type RpcDataPackage struct {
-	Head       *Header
-	Meta       *RpcMeta
+	Head       Header
+	Meta       RpcMeta
 	Data       []byte
 	Attachment []byte
 }
 
+/*
+  Create a new RpcDataPackage instance.
+*/
 func NewRpcDataPackage() *RpcDataPackage {
 	data := RpcDataPackage{}
 	doInit(&data)
@@ -97,37 +100,25 @@ func NewRpcDataPackage() *RpcDataPackage {
 	return &data
 }
 
+/*
+  set magic code to package.
+*/
 func (r *RpcDataPackage) MagicCode(magicCode string) {
 	if len(magicCode) != 4 {
 		return
 	}
-
-	initHeader(r)
 	r.Head.SetMagicCode([]byte(magicCode))
-
 }
 
 func (r *RpcDataPackage) GetMagicCode() string {
-	initHeader(r)
 	return string(r.Head.GetMagicCode())
 
 }
 
-func initHeader(r *RpcDataPackage) {
-	if r.Head == nil {
-		r.Head = &Header{}
-	}
-}
-
-func initRpcMeta(r *RpcDataPackage) {
-	if r.Meta == nil {
-		r.Meta = &RpcMeta{}
-	}
-}
-
+/*
+  To initialize Request struct instance if need(nil)
+*/
 func initRequest(r *RpcDataPackage) {
-	initRpcMeta(r)
-
 	request := r.Meta.Request
 	if request == nil {
 		r.Meta.Request = &Request{}
@@ -135,9 +126,10 @@ func initRequest(r *RpcDataPackage) {
 
 }
 
+/*
+  To initialize Response struct instance if need(nil)
+*/
 func initResponse(r *RpcDataPackage) {
-	initRpcMeta(r)
-
 	response := r.Meta.Response
 	if response == nil {
 		r.Meta.Response = &Response{}
@@ -145,6 +137,9 @@ func initResponse(r *RpcDataPackage) {
 
 }
 
+/*
+  set service name
+*/
 func (r *RpcDataPackage) ServiceName(serviceName string) *RpcDataPackage {
 	initRequest(r)
 
@@ -153,6 +148,9 @@ func (r *RpcDataPackage) ServiceName(serviceName string) *RpcDataPackage {
 	return r
 }
 
+/*
+  set method name
+*/
 func (r *RpcDataPackage) MethodName(methodName string) *RpcDataPackage {
 	initRequest(r)
 
@@ -172,22 +170,16 @@ func (r *RpcDataPackage) SetAttachment(Attachment []byte) *RpcDataPackage {
 }
 
 func (r *RpcDataPackage) AuthenticationData(authenticationData []byte) *RpcDataPackage {
-	initRpcMeta(r)
-
 	r.Meta.AuthenticationData = authenticationData
 	return r
 }
 
 func (r *RpcDataPackage) CorrelationId(correlationId int64) *RpcDataPackage {
-	initRpcMeta(r)
-
 	r.Meta.CorrelationId = &correlationId
 	return r
 }
 
 func (r *RpcDataPackage) CompressType(compressType int32) *RpcDataPackage {
-	initRpcMeta(r)
-
 	r.Meta.CompressType = &compressType
 	return r
 }
@@ -215,17 +207,13 @@ func (r *RpcDataPackage) ErrorCode(errorCode int32) *RpcDataPackage {
 
 func (r *RpcDataPackage) ErrorText(errorText string) *RpcDataPackage {
 	initResponse(r)
-
 	r.Meta.Response.ErrorText = &errorText
-
 	return r
 }
 
 func (r *RpcDataPackage) ExtraParams(extraParams []byte) *RpcDataPackage {
 	initRequest(r)
-
 	r.Meta.Request.ExtraParam = extraParams
-
 	return r
 }
 
@@ -233,29 +221,21 @@ func (r *RpcDataPackage) ChunkInfo(streamId int64, chunkId int64) *RpcDataPackag
 	chunkInfo := ChunkInfo{}
 	chunkInfo.StreamId = &streamId
 	chunkInfo.ChunkId = &chunkId
-	initRpcMeta(r)
 	r.Meta.ChunkInfo = &chunkInfo
 	return r
 }
 
 func doInit(r *RpcDataPackage) {
-	initHeader(r)
 	initRequest(r)
 	initResponse(r)
 }
 
-func (r *RpcDataPackage) GetHead() *Header {
-	if r.Head == nil {
-		return nil
-	}
+func (r *RpcDataPackage) GetHead() Header {
 	return r.Head
 }
 
 func (r *RpcDataPackage) GetMeta() *RpcMeta {
-	if r.Meta == nil {
-		return nil
-	}
-	return r.Meta
+	return &r.Meta
 }
 
 func (r *RpcDataPackage) GetData() []byte {
@@ -271,12 +251,12 @@ func (r *RpcDataPackage) GetAttachment() []byte {
 */
 func (r *RpcDataPackage) WriteIO(rw io.ReadWriter) error {
 
-	bytes, err := r.Write()
+	bs, err := r.Write()
 	if err != nil {
 		return err
 	}
 
-	_, err = rw.Write(bytes)
+	_, err = rw.Write(bs)
 	if err != nil {
 		return err
 	}
@@ -317,7 +297,7 @@ func (r *RpcDataPackage) Write() ([]byte, error) {
 
 	r.Meta.AttachmentSize = proto.Int32(int32(attachmentSize))
 
-	metaBytes, err := proto.Marshal(r.Meta)
+	metaBytes, err := proto.Marshal(&r.Meta)
 	if err != nil {
 		return nil, err
 	}
@@ -349,15 +329,6 @@ func (r *RpcDataPackage) Write() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-func checkSize(current, expect int, bytes []byte) error {
-	if current < expect {
-		message := fmt.Sprintf(LOG_INVALID_BYTES, bytes)
-		return errors.New(message)
-
-	}
-	return nil
 }
 
 /*
@@ -396,7 +367,7 @@ func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
 
 	rw.Read(body)
 
-	proto.Unmarshal(body[0:metaSize], r.Meta)
+	proto.Unmarshal(body[0:metaSize], &r.Meta)
 
 	attachmentSize := r.Meta.GetAttachmentSize()
 	dataSize := leftSize - metaSize - attachmentSize
@@ -409,6 +380,7 @@ func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
 		compressType := r.GetMeta().GetCompressType()
 		if compressType == COMPRESS_GZIP {
 			r.Data, err = GUNZIP(r.Data)
+
 			if err != nil {
 				return err
 			}
@@ -428,6 +400,9 @@ func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
 	return nil
 }
 
+/*
+ read RPC package from byte array.  target byte array can not null.
+*/
 func (r *RpcDataPackage) Read(b []byte) error {
 
 	if b == nil {

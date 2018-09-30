@@ -33,5 +33,4 @@ func TestTimetookInSeconds(t *testing.T) {
 	if cost < 1 {
 		t.Error("time took is not acceptable.")
 	}
-
 }

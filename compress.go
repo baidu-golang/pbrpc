@@ -30,7 +30,7 @@ func GUNZIP(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer r.Close()
-
 	undatas, _ := ioutil.ReadAll(r)
+
 	return undatas, nil
 }
