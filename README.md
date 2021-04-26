@@ -12,8 +12,15 @@ features:
 - 集成内置HTTP管理功能[TODO]
 - Client支持Ha的负载均衡功能[TODO]
   ​
+### Installing 
 
-### 依赖三方库
+To start using BigQueue-Go, install Go and run `go get`:
+
+```sh
+$ go get github.com/baidu-golang/pbrpc
+```
+
+### 依赖三方库  go mod
 
 1. ##### golang-protobuf 针对golang开发支持google protocol  buffer库, 获取方式如下
 
