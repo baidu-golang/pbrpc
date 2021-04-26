@@ -13,13 +13,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pbrpc
+package baidurpc
 
 import (
+	"context"
 	"errors"
 	"time"
 
-	pool "github.com/jolestar/go-commons-pool"
+	pool "github.com/jolestar/go-commons-pool/v2"
 )
 
 var Empty_Head = make([]byte, SIZE)
@@ -79,7 +80,7 @@ func (c *TCPConnectionPool) connect(url URL, timeout *time.Duration, sendChanSiz
 		eConfig = pool.NewDefaultPoolConfig()
 	}
 
-	objectPool = pool.NewObjectPool(&factory, eConfig)
+	objectPool = pool.NewObjectPool(context.Background(), &factory, eConfig)
 	c.objectPool = objectPool
 
 	return nil
@@ -91,7 +92,7 @@ func (c *TCPConnectionPool) borrowObject() (*TCPConnection, error) {
 		return nil, ERR_POOL_NOT_INIT
 	}
 
-	object, err := c.objectPool.BorrowObject()
+	object, err := c.objectPool.BorrowObject(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (c *TCPConnectionPool) SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDat
 	if err != nil {
 		return nil, err
 	}
-	defer c.objectPool.ReturnObject(object)
+	defer c.objectPool.ReturnObject(context.Background(), object)
 
 	return object.SendReceive(rpcDataPackage)
 
@@ -119,7 +120,7 @@ func (c *TCPConnectionPool) Close() error {
 		return ERR_POOL_NOT_INIT
 	}
 
-	c.objectPool.Close()
+	c.objectPool.Close(context.Background())
 	return nil
 }
 
@@ -135,7 +136,7 @@ type ConnectionPoolFactory struct {
 	url *URL
 }
 
-func (c *ConnectionPoolFactory) MakeObject() (*pool.PooledObject, error) {
+func (c *ConnectionPoolFactory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	if c.url == nil {
 		return nil, ERR_POOL_URL_NIL
 	}
@@ -149,7 +150,7 @@ func (c *ConnectionPoolFactory) MakeObject() (*pool.PooledObject, error) {
 	return pool.NewPooledObject(&connection), nil
 }
 
-func (c *ConnectionPoolFactory) DestroyObject(object *pool.PooledObject) error {
+func (c *ConnectionPoolFactory) DestroyObject(ctx context.Context, object *pool.PooledObject) error {
 	obj := object.Object
 	if obj == nil {
 		return ERR_DESTORY_OBJECT_NIL
@@ -159,7 +160,7 @@ func (c *ConnectionPoolFactory) DestroyObject(object *pool.PooledObject) error {
 	return conn.Close()
 }
 
-func (c *ConnectionPoolFactory) ValidateObject(object *pool.PooledObject) bool {
+func (c *ConnectionPoolFactory) ValidateObject(ctx context.Context, object *pool.PooledObject) bool {
 
 	if true {
 		return true
@@ -175,10 +176,10 @@ func (c *ConnectionPoolFactory) ValidateObject(object *pool.PooledObject) bool {
 	return conn.TestConnection() != nil
 }
 
-func (c *ConnectionPoolFactory) ActivateObject(object *pool.PooledObject) error {
+func (c *ConnectionPoolFactory) ActivateObject(ctx context.Context, object *pool.PooledObject) error {
 	return nil
 }
 
-func (c *ConnectionPoolFactory) PassivateObject(object *pool.PooledObject) error {
+func (c *ConnectionPoolFactory) PassivateObject(ctx context.Context, object *pool.PooledObject) error {
 	return nil
 }

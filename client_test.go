@@ -13,14 +13,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pbrpc_test
+package baidurpc_test
 
 import (
 	"errors"
 	"fmt"
 	"log"
 
-	pbrpc "github.com/baidu-golang/pbrpc"
+	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 
 	"strings"
@@ -37,12 +37,12 @@ func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
 	rpcServer := DoRpcServerStart(nil, port)
 	defer rpcServer.Stop()
 
-	url := pbrpc.URL{}
+	url := baidurpc.URL{}
 	url.SetHost(&host).SetPort(&port)
 
 	timeout := time.Second * 5
 	// create client by simple connection
-	connection, err := pbrpc.NewTCPConnection(url, &timeout)
+	connection, err := baidurpc.NewTCPConnection(url, &timeout)
 	if err != nil {
 		return
 	}
@@ -64,12 +64,12 @@ func TestSendRpcRequestSucc173300ess(t *testing.T) {
 	rpcServer := DoRpcServerStart(t, port)
 	defer rpcServer.Stop()
 
-	url := pbrpc.URL{}
+	url := baidurpc.URL{}
 	url.SetHost(&host).SetPort(&port)
 
 	timeout := time.Second * 5
 	// create client by simple connection
-	connection, err := pbrpc.NewTCPConnection(url, &timeout)
+	connection, err := baidurpc.NewTCPConnection(url, &timeout)
 	if err != nil {
 		t.Error(err)
 	}
@@ -77,7 +77,7 @@ func TestSendRpcRequestSucc173300ess(t *testing.T) {
 	doSimpleRPCInvoke(t, connection)
 
 	// create client by connection pool
-	connectionPool, err := pbrpc.NewDefaultTCPConnectionPool(url, &timeout)
+	connectionPool, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,12 +94,12 @@ func TestSendRpcRequestNoServiceNameExist(t *testing.T) {
 	rpcServer := DoRpcServerStart(t, port)
 	defer rpcServer.Stop()
 
-	url := pbrpc.URL{}
+	url := baidurpc.URL{}
 	url.SetHost(&host).SetPort(&port)
 
 	timeout := time.Second * 5
 	// create client by simple connection
-	connection, err := pbrpc.NewTCPConnection(url, &timeout)
+	connection, err := baidurpc.NewTCPConnection(url, &timeout)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,11 +118,11 @@ func TestSendRpcRequestReconnectionSuccess(t *testing.T) {
 
 	rpcServer := DoRpcServerStart(t, port)
 
-	url := pbrpc.URL{}
+	url := baidurpc.URL{}
 	url.SetHost(&host).SetPort(&port)
 	timeout := time.Second * 5
 	// create client by connection pool
-	connectionPool, err := pbrpc.NewDefaultTCPConnectionPool(url, &timeout)
+	connectionPool, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
 	if err != nil {
 		t.Error(err)
 	}
@@ -136,7 +136,7 @@ func TestSendRpcRequestReconnectionSuccess(t *testing.T) {
 	doSimpleRPCInvoke(t, connectionPool)
 }
 
-func doSimpleRPCInvoke(t *testing.T, connection pbrpc.Connection) {
+func doSimpleRPCInvoke(t *testing.T, connection baidurpc.Connection) {
 
 	serviceName := "echoService"
 	methodName := "echo"
@@ -144,15 +144,15 @@ func doSimpleRPCInvoke(t *testing.T, connection pbrpc.Connection) {
 	doSimpleRPCInvokeWithSignature(connection, serviceName, methodName)
 }
 
-func doSimpleRPCInvokeWithSignature(connection pbrpc.Connection, serviceName, methodName string) error {
+func doSimpleRPCInvokeWithSignature(connection baidurpc.Connection, serviceName, methodName string) error {
 
 	// create client
-	rpcClient, err := pbrpc.NewRpcCient(connection)
+	rpcClient, err := baidurpc.NewRpcCient(connection)
 	if err != nil {
 		return err
 	}
 
-	rpcInvocation := pbrpc.NewRpcInvocation(&serviceName, &methodName)
+	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 	message := "say hello from xiemalin中文测试"
 	dm := DataMessage{&message}

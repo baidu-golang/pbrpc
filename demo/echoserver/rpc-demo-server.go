@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/baidu-golang/pbrpc"
+	baidurpc "github.com/baidu-golang/pbrpc"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -23,31 +23,25 @@ func init() {
 
 func main() {
 
-	defer func() {
-
-		err := recover() // final process exception
-		if err != nil {
-			pbrpc.Error(err)
-		}
-
-	}()
-
 	rpcServer := createRpcServer(*port)
+
 	err := rpcServer.StartAndBlock()
+
 	if err != nil {
-		pbrpc.Error(err)
+		baidurpc.Error(err)
 		os.Exit(-1)
 	}
 
 }
 
-func createRpcServer(port int) *pbrpc.TcpServer {
-	serverMeta := pbrpc.ServerMeta{}
+func createRpcServer(port int) *baidurpc.TcpServer {
+	serverMeta := baidurpc.ServerMeta{}
 	serverMeta.Host = nil
 	serverMeta.Port = Int(port)
+	rpcServer := baidurpc.NewTpcServer(&serverMeta)
 
-	rpcServer := pbrpc.NewTpcServer(&serverMeta)
 	ss := NewSimpleService("echoService", "echo")
+
 	rpcServer.Register(ss)
 
 	return rpcServer
@@ -99,7 +93,7 @@ func (ss *SimpleService) DoService(msg proto.Message, attachment []byte, logId *
 		m := msg.(*DataMessage)
 		name = m.Name
 
-		if name == nil || len(*name) == 0 {
+		if len(*name) == 0 {
 			ret = ret + "veryone"
 		} else {
 			ret = ret + *name

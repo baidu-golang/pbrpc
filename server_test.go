@@ -13,13 +13,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pbrpc_test
+package baidurpc_test
 
 import (
 	"errors"
 	"testing"
 
-	pbrpc "github.com/baidu-golang/pbrpc"
+	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -91,7 +91,7 @@ func DoRpcServerStartAndBlock(t *testing.T, port int) {
 	}
 }
 
-func DoRpcServerStart(t *testing.T, port int) *pbrpc.TcpServer {
+func DoRpcServerStart(t *testing.T, port int) *baidurpc.TcpServer {
 
 	rpcServer := createRpcServer(port)
 
@@ -102,11 +102,11 @@ func DoRpcServerStart(t *testing.T, port int) *pbrpc.TcpServer {
 	return rpcServer
 }
 
-func createRpcServer(port int) *pbrpc.TcpServer {
-	serverMeta := pbrpc.ServerMeta{}
+func createRpcServer(port int) *baidurpc.TcpServer {
+	serverMeta := baidurpc.ServerMeta{}
 	serverMeta.Host = proto.String("localhost")
 	serverMeta.Port = Int(port)
-	rpcServer := pbrpc.NewTpcServer(&serverMeta)
+	rpcServer := baidurpc.NewTpcServer(&serverMeta)
 
 	ss := NewSimpleService("echoService", "echo")
 

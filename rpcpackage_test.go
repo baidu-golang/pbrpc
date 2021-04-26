@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pbrpc_test
+package baidurpc_test
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	pbrpc "github.com/baidu-golang/pbrpc"
+	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -50,9 +50,9 @@ var correlationId int64 = 20001
 var data []byte = []byte{1, 2, 3, 1, 2, 3, 1, 1, 2, 2, 20}
 var attachment []byte = []byte{2, 2, 2, 2, 2, 1, 1, 1, 1}
 
-func initRpcDataPackage() *pbrpc.RpcDataPackage {
+func initRpcDataPackage() *baidurpc.RpcDataPackage {
 
-	rpcDataPackage := pbrpc.RpcDataPackage{}
+	rpcDataPackage := baidurpc.RpcDataPackage{}
 
 	rpcDataPackage.MagicCode(magicCode)
 	rpcDataPackage.SetData(data)
@@ -67,7 +67,7 @@ func initRpcDataPackage() *pbrpc.RpcDataPackage {
 	return &rpcDataPackage
 }
 
-func equalRpcDataPackage(r pbrpc.RpcDataPackage) error {
+func equalRpcDataPackage(r baidurpc.RpcDataPackage) error {
 
 	if !strings.EqualFold(sericeName, *r.Meta.Request.ServiceName) {
 		return errors.New(fmt.Sprintf("expect serice name '%s' but actual is '%s'", sericeName, *r.Meta.Request.ServiceName))
@@ -100,7 +100,7 @@ func equalRpcDataPackage(r pbrpc.RpcDataPackage) error {
 	return nil
 }
 
-func validateRpcDataPackage(t *testing.T, r2 pbrpc.RpcDataPackage) {
+func validateRpcDataPackage(t *testing.T, r2 baidurpc.RpcDataPackage) {
 
 	if !strings.EqualFold(magicCode, r2.GetMagicCode()) {
 		t.Errorf("expect magic code '%s' but actual is '%s'", magicCode, r2.GetMagicCode())
@@ -125,7 +125,7 @@ func TestWriteReaderWithMockData(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	r2 := pbrpc.RpcDataPackage{}
+	r2 := baidurpc.RpcDataPackage{}
 
 	err = r2.Read(b)
 	if err != nil {
@@ -136,7 +136,7 @@ func TestWriteReaderWithMockData(t *testing.T) {
 
 }
 
-func WriteReaderWithRealData(rpcDataPackage *pbrpc.RpcDataPackage,
+func WriteReaderWithRealData(rpcDataPackage *baidurpc.RpcDataPackage,
 	compressType int32, t *testing.T) {
 	dataMessage := DataMessage{}
 	name := "hello, xiemalin. this is repeated string aaaaaaaaaaaaaaaaaaaaaa"
@@ -153,7 +153,7 @@ func WriteReaderWithRealData(rpcDataPackage *pbrpc.RpcDataPackage,
 		t.Error(err.Error())
 	}
 
-	r2 := pbrpc.RpcDataPackage{}
+	r2 := baidurpc.RpcDataPackage{}
 	r2.CompressType(compressType)
 
 	err = r2.Read(b)
@@ -175,16 +175,16 @@ func WriteReaderWithRealData(rpcDataPackage *pbrpc.RpcDataPackage,
 func TestWriteReaderWithRealData(t *testing.T) {
 
 	rpcDataPackage := initRpcDataPackage()
-	WriteReaderWithRealData(rpcDataPackage, pbrpc.COMPRESS_NO, t)
+	WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_NO, t)
 }
 
 func TestWriteReaderWithGZIP(t *testing.T) {
 
 	rpcDataPackage := initRpcDataPackage()
 
-	rpcDataPackage.CompressType(pbrpc.COMPRESS_GZIP)
+	rpcDataPackage.CompressType(baidurpc.COMPRESS_GZIP)
 
-	WriteReaderWithRealData(rpcDataPackage, pbrpc.COMPRESS_GZIP, t)
+	WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_GZIP, t)
 
 }
 
@@ -192,8 +192,8 @@ func TestWriteReaderWithSNAPPY(t *testing.T) {
 
 	rpcDataPackage := initRpcDataPackage()
 
-	rpcDataPackage.CompressType(pbrpc.COMPRESS_SNAPPY)
+	rpcDataPackage.CompressType(baidurpc.COMPRESS_SNAPPY)
 
-	WriteReaderWithRealData(rpcDataPackage, pbrpc.COMPRESS_SNAPPY, t)
+	WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_SNAPPY, t)
 
 }

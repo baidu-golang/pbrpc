@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pbrpc
+package baidurpc
 
 import (
 	"errors"
@@ -23,7 +23,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/baidu-golang/pbrpc/link"
+	"github.com/funny/link"
+
 	"github.com/golang/protobuf/proto"
 )
 
@@ -128,7 +129,6 @@ func (s *TcpServer) Start() error {
 	if err != nil {
 		return err
 	}
-	server.IdleTimeoutSenconds = s.serverMeta.IdleTimeoutSenconds
 	s.server = server
 	go server.Serve()
 

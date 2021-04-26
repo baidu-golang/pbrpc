@@ -1,15 +1,14 @@
-package pbrpc
+package baidurpc
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io/ioutil"
-
-	gzip "compress/gzip"
 )
 
 func GZIP(b []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	w, _ := gzip.NewWriterLevel(buf, gzip.NoCompression)
+	w := gzip.NewWriter(buf)
 	defer w.Close()
 
 	_, err := w.Write(b)

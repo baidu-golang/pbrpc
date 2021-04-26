@@ -1,14 +1,14 @@
-# pbrpc
+# baidurpc
 
-pbrpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容公司baidurpc标准协议。
+baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 
-### features:
+features:
 
 - 内置连接池，具备更高的性能，低延迟 QPS: 5w+
 - 支持自动重连功能
 - 支持附件发送
 - 支持超时功能
-- 压缩功能，支持GZip与Snappy
+- 压缩功能，支持GZip与Snappy[TODO]
 - 集成内置HTTP管理功能[TODO]
 - Client支持Ha的负载均衡功能[TODO]
   ​
@@ -34,10 +34,6 @@ pbrpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以
 5. link Go语言网络层脚手架，获取方式如下
 
    ##### go get github.com/funny/link
-
-6. Snappy压缩类库，获取方式如下
-
-   ##### go get github.com/golang/snappy
 
 ### Demo示例
 
@@ -121,10 +117,10 @@ func (ss *SimpleService) NewParameter() proto.Message {
 
    ```go
    func main() {
-       serverMeta := pbrpc.ServerMeta{}
+       serverMeta := baidurpc.ServerMeta{}
    	serverMeta.Host = nil
    	serverMeta.Port = 8122
-   	rpcServer := pbrpc.NewTpcServer(&serverMeta)
+   	rpcServer := baidurpc.NewTpcServer(&serverMeta)
 
    	ss := NewSimpleService("echoService", "echo")
 
@@ -134,7 +130,7 @@ func (ss *SimpleService) NewParameter() proto.Message {
    	err := rpcServer.StartAndBlock()
 
    	if err != nil {
-   		pbrpc.Error(err)
+   		baidurpc.Error(err)
    		os.Exit(-1)
    	}
    }
@@ -163,15 +159,15 @@ func (m *DataMessage) GetName() string {
 
 
 
-#### 开发RPC客户端
+### 开发RPC客户端
 
 ```go
     // 创建链接(本示例使用连接池方式)
-	url := pbrpc.URL{}
+	url := baidurpc.URL{}
 	url.SetHost(host).SetPort(port)
     timeout := time.Second * 5
    
-    connection, err := pbrpc.NewDefaultTCPConnectionPool(url, &timeout)
+    connection, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
@@ -179,7 +175,7 @@ func (m *DataMessage) GetName() string {
     defer connection.Close()
 
     // 创建client
-    rpcClient, err := pbrpc.NewRpcCient(connection)
+    rpcClient, err := baidurpc.NewRpcCient(connection)
     if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
@@ -187,10 +183,7 @@ func (m *DataMessage) GetName() string {
     // 调用RPC
 	serviceName := "echoService"
 	methodName := "echo"
-	rpcInvocation := pbrpc.NewRpcInvocation(&serviceName, &methodName)
-   
-    // 指定压缩算法
-    rpcInvocation.CompressType = proto.Int32(pbrpc.COMPRESS_GZIP)
+	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 	message := "say hello from xiemalin中文测试"
 	dm := DataMessage{&message}
@@ -212,4 +205,3 @@ func (m *DataMessage) GetName() string {
 	}
 ```
 
-更多使用示例参见demo
