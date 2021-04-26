@@ -14,7 +14,7 @@ features:
   ​
 ### Installing 
 
-To start using BigQueue-Go, install Go and run `go get`:
+To start using pbrpc, install Go and run `go get`:
 
 ```sh
 $ go get github.com/baidu-golang/pbrpc
