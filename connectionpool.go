@@ -59,8 +59,7 @@ func NewTCPConnectionPool(url URL, timeout *time.Duration, config *pool.ObjectPo
 		connection.Config = config
 	}
 
-	var err error
-	err = connection.connect(url, timeout, 0)
+	err := connection.connect(url, timeout, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -161,10 +160,6 @@ func (c *ConnectionPoolFactory) DestroyObject(ctx context.Context, object *pool.
 }
 
 func (c *ConnectionPoolFactory) ValidateObject(ctx context.Context, object *pool.PooledObject) bool {
-
-	if true {
-		return true
-	}
 
 	obj := object.Object
 	if obj == nil {

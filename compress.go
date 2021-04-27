@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 )
 
+// GZIP do gzip action by gzip package
 func GZIP(b []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	w := gzip.NewWriter(buf)
@@ -21,6 +22,7 @@ func GZIP(b []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// GUNZIP do unzip action by gzip package
 func GUNZIP(b []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.Write(b)

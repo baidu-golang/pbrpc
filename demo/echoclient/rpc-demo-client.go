@@ -7,13 +7,13 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
+	pool "github.com/jolestar/go-commons-pool/v2"
 
 	"github.com/golang/protobuf/proto"
-	pool "github.com/jolestar/go-commons-pool/v2"
 )
 
 var host = flag.String("host", "localhost", "If non-empty, connect to target host")
-var port = flag.Int("port", 8122, "If non-empty, connect to target host")
+var port = flag.Int("port", 8122, "If non-empty, use this port")
 
 var countsPerThread = flag.Int("countsPerThread", 100, "If non-empty, counts per thread to execute default is 100")
 var parell = flag.Int("parell", 5, "If non-empty, concurrent threads to run")
@@ -34,6 +34,9 @@ func main() {
 	config := pool.NewDefaultPoolConfig()
 	config.MaxTotal = *parell
 	config.MaxIdle = *parell
+
+	// connection, err := baidurpc.NewTCPConnection(url, &timeout)
+
 	connection, err := baidurpc.NewTCPConnectionPool(url, &timeout, config)
 	if err != nil {
 		fmt.Println(err)
@@ -50,7 +53,7 @@ func main() {
 
 	var count = 0
 	for {
-		_ = <-ch
+		<-ch
 		fmt.Println("Receive chan back")
 		count++
 		if count > (*parell - 1) {

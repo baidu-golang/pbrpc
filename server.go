@@ -40,14 +40,14 @@ const (
 )
 
 // error log info definition
-var ERR_SERVER_NOT_INIT = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer.")
-var ERR_INVALID_PORT = errors.New("[server-002]port of server is nil or invalid.")
-var ERR_RESPONSE_TO_CLIENT = errors.New("[server-003]response call session.Send to client failed.")
-var LOG_SERVICE_NOTFOUND = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found."
-var LOG_SERVICE_DUPLICATE = "[server-004]Service name '%s' or method name '%s' already exist."
+var ERR_SERVER_NOT_INIT = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer")
+var ERR_INVALID_PORT = errors.New("[server-002]port of server is nil or invalid")
+var ERR_RESPONSE_TO_CLIENT = errors.New("[server-003]response call session.Send to client failed")
+var LOG_SERVICE_NOTFOUND = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found"
+var LOG_SERVICE_DUPLICATE = "[server-004]Service name '%s' or method name '%s' already exist"
 var LOG_SERVER_STARTED_INFO = "[server-100]Server started on '%s' of port '%d'"
 var LOG_INTERNAL_ERROR = "[server-" + strconv.Itoa(ST_ERROR) + "] unknown internal error:'%s'"
-var LOG_TIMECOUST_INFO = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds."
+var LOG_TIMECOUST_INFO = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 var LOG_TIMECOUST_INFO2 = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
 
 var DEAFULT_IDLE_TIME_OUT_SECONDS = 10
@@ -57,6 +57,8 @@ type ServerMeta struct {
 	Port                *int
 	IdleTimeoutSenconds *int
 }
+
+type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
 
 type Service interface {
 	/*
@@ -73,6 +75,33 @@ type Service interface {
 	GetServiceName() string
 	GetMethodName() string
 	NewParameter() proto.Message
+}
+
+// DefaultService default implemention for Service interface
+type DefaultService struct {
+	sname    string
+	mname    string
+	callback RPCFN
+}
+
+// DoService do call back function on RPC invocation
+func (s *DefaultService) DoService(message proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
+	return s.callback(message, attachment, logId)
+}
+
+// GetMethodName get method name
+func (s *DefaultService) GetMethodName() string {
+	return s.mname
+}
+
+// NewParameter no long will be used
+func (s *DefaultService) NewParameter() proto.Message {
+	return nil
+}
+
+// GetServiceName get service name
+func (s *DefaultService) GetServiceName() string {
+	return s.sname
 }
 
 type Server interface {
@@ -270,15 +299,26 @@ func (s *TcpServer) Stop() error {
 	return nil
 }
 
+// Register register RPC service
 func (s *TcpServer) Register(service Service) (bool, error) {
 	ss := service
 	serviceId := GetServiceId(ss.GetServiceName(), ss.GetMethodName())
 	exsit := s.services[serviceId]
 	if exsit != nil {
-		err := errors.New(fmt.Sprintf(LOG_SERVICE_DUPLICATE, ss.GetServiceName(), ss.GetMethodName()))
+		err := fmt.Errorf(LOG_SERVICE_DUPLICATE, ss.GetServiceName(), ss.GetMethodName())
 		Error(err.Error())
 		return false, err
 	}
 	s.services[serviceId] = ss
 	return true, nil
+}
+
+// RegisterRpc register Rpc direct
+func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN) (bool, error) {
+	service := &DefaultService{
+		sname:    sname,
+		mname:    mname,
+		callback: callback,
+	}
+	return s.Register(service)
 }

@@ -24,7 +24,7 @@ import (
 	"github.com/funny/link"
 )
 
-var ERR_SESSION_IS_NIL = errors.New("[conn-001]Session is nil, maybe not init Connect() function.")
+var ERR_SESSION_IS_NIL = errors.New("[conn-001]Session is nil, maybe not init Connect() function")
 var ERR_INVALID_URL = errors.New("[conn-002]parameter 'url' of host property is nil")
 
 var LOG_INVALID_PORT = "[conn-003]invalid parameter 'url' of port property is '%d'"
