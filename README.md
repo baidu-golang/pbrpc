@@ -28,28 +28,6 @@ To start using pbrpc, install Go and run `go get`:
 $ go get github.com/baidu-golang/pbrpc
 ```
 
-### 依赖三方库  go mod
-
-1. ##### golang-protobuf 针对golang开发支持google protocol  buffer库, 获取方式如下
-
-   ##### go get github.com/golang/protobuf
-
-2. glog 日志库, 获取方式如下
-
-   ##### go get github.com/golang/glog
-
-3. go-commons-pool 连接池库，获取方式如下
-
-   ##### go get github.com/jolestar/go-commons-pool
-
-4. 单元测试工具类 testify，获取方式如下
-
-   ##### go get github.com/stretchr/testify/
-
-5. link Go语言网络层脚手架，获取方式如下
-
-   ##### go get github.com/funny/link
-
 ### Demo示例
 
 #### 开发RPC服务端
@@ -219,4 +197,28 @@ func (m *DataMessage) GetName() string {
 		return
 	}
 ```
+
+### 依赖三方库  go mod
+
+1. ##### golang-protobuf 针对golang开发支持google protocol  buffer库, 获取方式如下
+
+   ##### go get github.com/golang/protobuf
+
+2. glog 日志库, 获取方式如下
+
+   ##### go get github.com/golang/glog
+
+3. go-commons-pool 连接池库，获取方式如下
+
+   ##### go get github.com/jolestar/go-commons-pool
+
+4. 单元测试工具类 testify，获取方式如下
+
+   ##### go get github.com/stretchr/testify/
+
+5. link Go语言网络层脚手架，获取方式如下
+
+   ##### go get github.com/funny/link
+
+
 
