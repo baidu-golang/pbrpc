@@ -47,8 +47,6 @@ $ go get github.com/baidu-golang/pbrpc
    }
    ```
 
-   ​
-
 2. Service接口实现示例如下
 
 ```go
@@ -98,7 +96,6 @@ func (ss *SimpleService) NewParameter() proto.Message {
 ```
 
 
-
 3. 创建RPC服务并注册该实现接口
 
    ```go
@@ -142,8 +139,6 @@ func (m *DataMessage) GetName() string {
 	return ""
 }
 ```
-
-
 
 ### 开发RPC客户端
 
