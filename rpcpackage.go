@@ -374,6 +374,9 @@ func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
 	head := make([]byte, SIZE)
 	_, err := rw.Read(head)
 	if err != nil {
+		if err == io.EOF {
+			return ERR_IGNORE_ERR
+		}
 		log.Println("Read head error", err)
 		// only to close current connection
 		return ERR_IGNORE_ERR
