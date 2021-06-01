@@ -67,7 +67,7 @@ func createRpcServer(port int) *baidurpc.TcpServer {
 		return &dm, []byte{1, 5, 9}, nil
 	}
 
-	rpcServer.RegisterRpc("echoService", "echo", callback)
+	rpcServer.RegisterRpc("echoService", "echo", callback, &DataMessage{})
 
 	return rpcServer
 }
