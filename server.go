@@ -18,6 +18,7 @@ package baidurpc
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -82,6 +83,7 @@ type DefaultService struct {
 	sname    string
 	mname    string
 	callback RPCFN
+	inType   proto.Message
 }
 
 // DoService do call back function on RPC invocation
@@ -96,7 +98,7 @@ func (s *DefaultService) GetMethodName() string {
 
 // NewParameter no long will be used
 func (s *DefaultService) NewParameter() proto.Message {
-	return nil
+	return s.inType
 }
 
 // GetServiceName get service name
@@ -182,7 +184,7 @@ func (s *TcpServer) StartAndBlock() error {
 
 	// Block until a signal is received.
 	fmt.Println("Press Ctrl+C or send kill sinal to exit.")
-	_ = <-c
+	<-c
 
 	return nil
 }
@@ -236,7 +238,7 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 		}
 		// do service here
 		now2 := time.Now().Unix()
-		messageRet, attachment, err := service.DoService(msg, r.GetAttachment(), proto.Int64(int64(r.GetLogId())))
+		messageRet, attachment, err := doServiceInvoke(msg, r, service)
 		if err != nil {
 			wrapResponse(r, ST_ERROR, err.Error())
 			err = session.Send(r)
@@ -265,7 +267,6 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			r.SetAttachment(attachment)
 			wrapResponse(r, ST_SUCCESS, "")
 		}
-
 		err = session.Send(r)
 
 		if err != nil {
@@ -278,6 +279,18 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 
 	}
 
+}
+
+func doServiceInvoke(msg proto.Message, r *RpcDataPackage, service Service) (proto.Message, []byte, error) {
+	var err error
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, p)
+			log.Println(err.Error())
+		}
+	}()
+	messageRet, attachment, err := service.DoService(msg, r.GetAttachment(), proto.Int64(int64(r.GetLogId())))
+	return messageRet, attachment, err
 }
 
 func wrapResponse(r *RpcDataPackage, errorCode int, errorText string) {
@@ -314,11 +327,12 @@ func (s *TcpServer) Register(service Service) (bool, error) {
 }
 
 // RegisterRpc register Rpc direct
-func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN) (bool, error) {
+func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType proto.Message) (bool, error) {
 	service := &DefaultService{
 		sname:    sname,
 		mname:    mname,
 		callback: callback,
+		inType:   inType,
 	}
 	return s.Register(service)
 }

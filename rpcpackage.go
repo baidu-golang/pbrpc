@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 
@@ -28,7 +27,7 @@ import (
 )
 
 // error log info definition
-var ERR_NO_SNAPPY = errors.New("[marshal-002]Snappy compress not support yet.")
+var ERR_NO_SNAPPY = errors.New("[marshal-002]Snappy compress not support yet")
 var ERR_IGNORE_ERR = errors.New("[marshal-001]Ingore error")
 var ERR_META = errors.New("[marshal-003]Get nil value from Meta struct after marshal")
 
@@ -269,7 +268,7 @@ func (r *RpcDataPackage) GetAttachment() []byte {
 /*
   Convert RpcPackage to byte array
 */
-func (r *RpcDataPackage) WriteIO(rw io.ReadWriter) error {
+func (r *RpcDataPackage) WriteIO(rw io.Writer) error {
 
 	bytes, err := r.Write()
 	if err != nil {
@@ -351,19 +350,10 @@ func (r *RpcDataPackage) Write() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func checkSize(current, expect int, bytes []byte) error {
-	if current < expect {
-		message := fmt.Sprintf(LOG_INVALID_BYTES, bytes)
-		return errors.New(message)
-
-	}
-	return nil
-}
-
 /*
 Read byte array and initialize RpcPackage
 */
-func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
+func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 	if rw == nil {
 		return errors.New("bytes is nil")
 	}
@@ -435,7 +425,7 @@ func (r *RpcDataPackage) ReadIO(rw io.ReadWriter) error {
 func (r *RpcDataPackage) Read(b []byte) error {
 
 	if b == nil {
-		return errors.New("b is nil")
+		return errors.New("parameter 'b' is nil")
 	}
 
 	buf := bytes.NewBuffer(b)
