@@ -21,7 +21,9 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/funny/link"
@@ -53,10 +55,28 @@ var LOG_TIMECOUST_INFO2 = "[server-102]Server name '%s' method '%s' process cost
 
 var DEAFULT_IDLE_TIME_OUT_SECONDS = 10
 
+var m proto.Message
+var MessageType = reflect.TypeOf(m)
+
 type ServerMeta struct {
 	Host                *string
 	Port                *int
 	IdleTimeoutSenconds *int
+}
+
+type serviceType struct {
+	name   string                 // name of service
+	rcvr   reflect.Value          // receiver of methods for the service
+	typ    reflect.Type           // type of the receiver
+	method map[string]*methodType // registered methods
+}
+
+type methodType struct {
+	sync.Mutex // protects counters
+	method     reflect.Method
+	ArgType    reflect.Type
+	ReturnType reflect.Type
+	InArgValue interface{}
 }
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
@@ -296,7 +316,7 @@ func doServiceInvoke(msg proto.Message, r *RpcDataPackage, service Service) (pro
 func wrapResponse(r *RpcDataPackage, errorCode int, errorText string) {
 	r.GetMeta().Response = &Response{}
 
-	r.GetMeta().GetResponse().ErrorCode = proto.Int(errorCode)
+	r.GetMeta().GetResponse().ErrorCode = proto.Int32(int32(errorCode))
 	r.GetMeta().GetResponse().ErrorText = proto.String(errorText)
 }
 
@@ -324,6 +344,142 @@ func (s *TcpServer) Register(service Service) (bool, error) {
 	}
 	s.services[serviceId] = ss
 	return true, nil
+}
+
+// RegisterName register publishes in the server with specified name for its set of methods of the
+// receiver value that satisfy the following conditions:
+//	- exported method of exported type
+//	- one argument, exported type  and should be the type implements from proto.Message
+//	- one return value, of type proto.Message
+// It returns an error if the receiver is not an exported type or has
+// no suitable methods. It also logs the error using package log.
+// The client accesses each method using a string of the form "Type.Method",
+// where Type is the receiver's concrete type.
+func (s *TcpServer) RegisterName(name string, rcvr interface{}) (bool, error) {
+	return s.RegisterNameWithMethodMapping(name, rcvr, nil)
+}
+
+// RegisterNameWithMethodMapping call RegisterName with method name mapping map
+func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
+	st := &serviceType{
+		typ:  reflect.TypeOf(rcvr),
+		rcvr: reflect.ValueOf(rcvr),
+	}
+
+	sname := reflect.Indirect(st.rcvr).Type().Name()
+	if name != "" {
+		sname = name
+	}
+	st.name = sname
+
+	// Install the methods
+	st.method = suitableMethods(st.typ, true)
+
+	if len(st.method) == 0 {
+		str := ""
+
+		// To help the user, see if a pointer receiver would work.
+		method := suitableMethods(reflect.PtrTo(st.typ), false)
+		if len(method) != 0 {
+			str = "rpc.Register: type " + sname + " has no exported methods of suitable type (hint: pass a pointer to value of that type)"
+		} else {
+			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
+		}
+		log.Print(str)
+		return false, errors.New(str)
+	}
+
+	// do register rpc
+	for _, methodType := range st.method {
+		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
+			function := methodType.method.Func
+			returnValues := function.Call([]reflect.Value{st.rcvr, reflect.ValueOf(msg)})
+			if len(returnValues) == 1 {
+				return returnValues[0].Interface().(proto.Message), nil, nil
+			}
+			return nil, nil, nil
+		}
+		var inType proto.Message = methodType.InArgValue.(proto.Message)
+		if inType == nil {
+			// if not of type proto.Message
+			continue
+		}
+		mName := methodType.method.Name
+		if mapping != nil {
+			mname, ok := mapping[mName]
+			if ok {
+				mName = mname
+			}
+		}
+		s.RegisterRpc(st.name, mName, callback, inType)
+	}
+
+	// function := mtype.method.Func
+	// Invoke the method, providing a new value for the reply.
+	// returnValues := function.Call([]reflect.Value{s.rcvr, argv, replyv})
+
+	return true, nil
+}
+
+// suitableMethods returns suitable Rpc methods of typ, it will report
+// error using log if reportErr is true.
+func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
+	methods := make(map[string]*methodType)
+	for m := 0; m < typ.NumMethod(); m++ {
+		method := typ.Method(m)
+		mtype := method.Type
+		mname := method.Name
+		var inArgValue interface{}
+		var ok bool
+		// Method must be exported.
+		if method.PkgPath != "" {
+			continue
+		}
+		// Method needs two ins: receiver, *args.
+		if mtype.NumIn() != 2 {
+			if reportErr {
+				log.Printf("rpc.Register: method %q has %d input parameters; needs exactly two\n", mname, mtype.NumIn())
+			}
+			continue
+		}
+		// and must be type of proto message
+		argType := mtype.In(1)
+		if ok, inArgValue = isMessageType(argType); !ok {
+			if reportErr {
+				log.Printf("rpc.Register: argument type of method %q is not implements from proto.Message: %q\n", mname, argType)
+			}
+			continue
+		}
+		// Method needs one out.
+		if mtype.NumOut() != 1 {
+			if reportErr {
+				log.Printf("rpc.Register: method %q has %d output parameters; needs exactly one\n", mname, mtype.NumOut())
+			}
+			continue
+		}
+		// The return type of the method must be error.
+		returnType := mtype.Out(0)
+		if ok, _ := isMessageType(returnType); !ok {
+			if reportErr {
+				log.Printf("rpc.Register: return type of method %q is %q, must be implements from proto.Message\n", mname, returnType)
+			}
+			continue
+		}
+		methods[mname] = &methodType{method: method, ArgType: argType, ReturnType: returnType, InArgValue: inArgValue}
+	}
+	return methods
+}
+
+// Is this type implements from proto.Message
+func isMessageType(t reflect.Type) (bool, interface{}) {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	// PkgPath will be non-empty even for an exported type,
+	// so we need to check the type name as well.
+	argv := reflect.New(t)
+	v, ok := argv.Interface().(proto.Message)
+	return ok, v
 }
 
 // RegisterRpc register Rpc direct
