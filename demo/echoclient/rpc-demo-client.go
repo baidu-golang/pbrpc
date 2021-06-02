@@ -15,8 +15,8 @@ import (
 var host = flag.String("host", "localhost", "If non-empty, connect to target host")
 var port = flag.Int("port", 8122, "If non-empty, use this port")
 
-var countsPerThread = flag.Int("countsPerThread", 100, "If non-empty, counts per thread to execute default is 100")
-var parell = flag.Int("parell", 5, "If non-empty, concurrent threads to run")
+var countsPerThread = flag.Int("countsPerThread", 1, "If non-empty, counts per thread to execute default is 100")
+var parell = flag.Int("parell", 1, "If non-empty, concurrent threads to run")
 
 func init() {
 	if !flag.Parsed() {
@@ -103,6 +103,7 @@ func doSimpleRPCInvoke(connection baidurpc.Connection, x, y int) {
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)
+	rpcInvocation.Attachment = []byte("hello world")
 
 	parameterOut := DataMessage{}
 
@@ -116,6 +117,8 @@ func doSimpleRPCInvoke(connection baidurpc.Connection, x, y int) {
 		fmt.Println("Reponse is nil")
 		return
 	}
+
+	fmt.Println("attachement", response.Attachment)
 
 }
 

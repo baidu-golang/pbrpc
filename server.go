@@ -16,6 +16,7 @@
 package baidurpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ import (
 	"os/signal"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +42,12 @@ const (
 
 	/** 未知异常. */
 	ST_ERROR int = 2001
+
+	// attachement key
+	KT_ATTACHMENT = "_attachement_"
+
+	//  log id key
+	KT_LOGID = "_logid_"
 )
 
 // error log info definition
@@ -72,11 +80,12 @@ type serviceType struct {
 }
 
 type methodType struct {
-	sync.Mutex // protects counters
-	method     reflect.Method
-	ArgType    reflect.Type
-	ReturnType reflect.Type
-	InArgValue interface{}
+	sync.Mutex           // protects counters
+	method               reflect.Method
+	ArgType              reflect.Type
+	ReturnType           reflect.Type
+	ReturnTypeHasContext bool
+	InArgValue           interface{}
 }
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
@@ -342,6 +351,7 @@ func (s *TcpServer) Register(service Service) (bool, error) {
 		Error(err.Error())
 		return false, err
 	}
+	log.Println("Rpc service registered. service=", ss.GetServiceName(), " method=", ss.GetMethodName())
 	s.services[serviceId] = ss
 	return true, nil
 }
@@ -360,6 +370,7 @@ func (s *TcpServer) RegisterName(name string, rcvr interface{}) (bool, error) {
 }
 
 // RegisterNameWithMethodMapping call RegisterName with method name mapping map
+//
 func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
 	st := &serviceType{
 		typ:  reflect.TypeOf(rcvr),
@@ -393,11 +404,28 @@ func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{},
 	for _, methodType := range st.method {
 		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
 			function := methodType.method.Func
-			returnValues := function.Call([]reflect.Value{st.rcvr, reflect.ValueOf(msg)})
-			if len(returnValues) == 1 {
-				return returnValues[0].Interface().(proto.Message), nil, nil
+			// process context value
+			c := context.Background()
+			if attachment != nil {
+				c = context.WithValue(c, KT_ATTACHMENT, attachment)
 			}
-			return nil, nil, nil
+			contextValue := reflect.ValueOf(c)
+
+			var attachement []byte = nil
+
+			returnValues := function.Call([]reflect.Value{st.rcvr, contextValue, reflect.ValueOf(msg)})
+			if len(returnValues) == 1 {
+				return returnValues[0].Interface().(proto.Message), attachement, nil
+			}
+			if len(returnValues) == 2 {
+				ctx := returnValues[1].Interface().(context.Context)
+				v := ctx.Value(KT_ATTACHMENT)
+				if v != nil {
+					attachement = v.([]byte)
+				}
+				return returnValues[0].Interface().(proto.Message), attachement, nil
+			}
+			return nil, attachement, nil
 		}
 		var inType proto.Message = methodType.InArgValue.(proto.Message)
 		if inType == nil {
@@ -435,15 +463,24 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		if method.PkgPath != "" {
 			continue
 		}
-		// Method needs two ins: receiver, *args.
-		if mtype.NumIn() != 2 {
+		// Method needs two ins: receiver, context, *args.
+		if mtype.NumIn() != 3 {
 			if reportErr {
-				log.Printf("rpc.Register: method %q has %d input parameters; needs exactly two\n", mname, mtype.NumIn())
+				log.Printf("rpc.Register: method %q has %d input parameters; needs exactly three\n", mname, mtype.NumIn())
 			}
 			continue
 		}
 		// and must be type of proto message
-		argType := mtype.In(1)
+		contextType := mtype.In(1)
+		if !isContextType(contextType) {
+			if reportErr {
+				log.Printf("rpc.Register: argument type of method %q is not implements from context.Context: %q\n", mname, contextType)
+			}
+			continue
+		}
+
+		// and must be type of proto message
+		argType := mtype.In(2)
 		if ok, inArgValue = isMessageType(argType); !ok {
 			if reportErr {
 				log.Printf("rpc.Register: argument type of method %q is not implements from proto.Message: %q\n", mname, argType)
@@ -451,9 +488,9 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 			continue
 		}
 		// Method needs one out.
-		if mtype.NumOut() != 1 {
+		if mtype.NumOut() != 1 && mtype.NumOut() != 2 {
 			if reportErr {
-				log.Printf("rpc.Register: method %q has %d output parameters; needs exactly one\n", mname, mtype.NumOut())
+				log.Printf("rpc.Register: method %q has %d output parameters; needs one or two. \n", mname, mtype.NumOut())
 			}
 			continue
 		}
@@ -465,7 +502,22 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 			}
 			continue
 		}
-		methods[mname] = &methodType{method: method, ArgType: argType, ReturnType: returnType, InArgValue: inArgValue}
+		var hasContext bool = false
+		if mtype.NumOut() == 2 {
+			// The return type of the method must be error.
+			returnContextType := mtype.Out(1)
+			if !isContextType(returnContextType) {
+				if reportErr {
+					log.Printf("rpc.Register: return type of method %q is %q, must be implements from context.Context\n", mname, returnType)
+				}
+				continue
+			} else {
+				hasContext = true
+			}
+		}
+
+		methods[mname] = &methodType{method: method, ArgType: argType,
+			ReturnType: returnType, InArgValue: inArgValue, ReturnTypeHasContext: hasContext}
 	}
 	return methods
 }
@@ -482,6 +534,17 @@ func isMessageType(t reflect.Type) (bool, interface{}) {
 	return ok, v
 }
 
+// Is this type implements from context.Context
+func isContextType(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	// PkgPath will be non-empty even for an exported type,
+	// so we need to check the type name as well.
+
+	return strings.Compare(t.String(), "context.Context") == 0
+}
+
 // RegisterRpc register Rpc direct
 func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType proto.Message) (bool, error) {
 	service := &DefaultService{
@@ -491,4 +554,19 @@ func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType prot
 		inType:   inType,
 	}
 	return s.Register(service)
+}
+
+// Attachment utility function to get attachemnt from context
+func Attachement(context context.Context) []byte {
+
+	v := context.Value(KT_ATTACHMENT)
+	if v == nil {
+		return nil
+	}
+	return v.([]byte)
+}
+
+// BindAttachement add attachement value to the context
+func BindAttachement(c context.Context, attachement interface{}) context.Context {
+	return context.WithValue(c, KT_ATTACHMENT, attachement)
 }

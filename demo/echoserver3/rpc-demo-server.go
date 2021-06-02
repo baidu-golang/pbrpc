@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"os"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
@@ -26,7 +28,7 @@ func main() {
 
 	echoService := new(EchoService)
 
-	rpcServer.RegisterName("echoService", echoService)
+	// rpcServer.RegisterName("echoService", echoService)
 
 	mapping := make(map[string]string)
 	mapping["Echo"] = "echo"
@@ -47,8 +49,12 @@ func Int(v int) *int {
 	return &v
 }
 
-func (rpc *EchoService) Echo(in *DataMessage) *DataMessage {
+// Echo  test publish method with return type has context argument
+func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
 	var ret = "hello "
+
+	attachement := baidurpc.Attachement(c)
+	fmt.Println("attachement", attachement)
 
 	if len(*in.Name) == 0 {
 		ret = ret + "veryone"
@@ -57,7 +63,13 @@ func (rpc *EchoService) Echo(in *DataMessage) *DataMessage {
 	}
 	dm := DataMessage{}
 	dm.Name = proto.String(ret)
-	return &dm
+	return &dm, baidurpc.BindAttachement(context.Background(), []byte("hello"))
+}
+
+// EchoWithoutContext
+func (rpc *EchoService) EchoWithoutContext(c context.Context, in *DataMessage) *DataMessage {
+	dm, _ := rpc.Echo(c, in)
+	return dm
 }
 
 //手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
