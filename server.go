@@ -80,12 +80,11 @@ type serviceType struct {
 }
 
 type methodType struct {
-	sync.Mutex           // protects counters
-	method               reflect.Method
-	ArgType              reflect.Type
-	ReturnType           reflect.Type
-	ReturnTypeHasContext bool
-	InArgValue           interface{}
+	sync.Mutex // protects counters
+	method     reflect.Method
+	ArgType    reflect.Type
+	ReturnType reflect.Type
+	InArgValue interface{}
 }
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
@@ -402,8 +401,8 @@ func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{},
 
 	// do register rpc
 	for _, methodType := range st.method {
+		function := methodType.method.Func
 		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
-			function := methodType.method.Func
 			// process context value
 			c := context.Background()
 			if attachment != nil {
@@ -502,7 +501,6 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 			}
 			continue
 		}
-		var hasContext bool = false
 		if mtype.NumOut() == 2 {
 			// The return type of the method must be error.
 			returnContextType := mtype.Out(1)
@@ -511,13 +509,11 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 					log.Printf("rpc.Register: return type of method %q is %q, must be implements from context.Context\n", mname, returnType)
 				}
 				continue
-			} else {
-				hasContext = true
 			}
 		}
 
 		methods[mname] = &methodType{method: method, ArgType: argType,
-			ReturnType: returnType, InArgValue: inArgValue, ReturnTypeHasContext: hasContext}
+			ReturnType: returnType, InArgValue: inArgValue}
 	}
 	return methods
 }
