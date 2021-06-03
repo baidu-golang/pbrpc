@@ -527,8 +527,12 @@ func isMessageType(t reflect.Type) (bool, interface{}) {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	// PkgPath will be non-empty even for an exported type,
-	// so we need to check the type name as well.
+
+	// should not a interface type
+	if t.Kind() == reflect.Interface {
+		return false, nil
+	}
+
 	argv := reflect.New(t)
 	v, ok := argv.Interface().(proto.Message)
 	return ok, v
@@ -539,10 +543,14 @@ func isContextType(t reflect.Type) bool {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	// PkgPath will be non-empty even for an exported type,
-	// so we need to check the type name as well.
 
-	return strings.Compare(t.String(), "context.Context") == 0
+	if strings.Compare(t.String(), "context.Context") == 0 {
+		return true
+	}
+
+	argv := reflect.New(t)
+	_, ok := argv.Interface().(context.Context)
+	return ok
 }
 
 // RegisterRpc register Rpc direct

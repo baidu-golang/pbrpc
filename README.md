@@ -51,6 +51,11 @@ $ go get github.com/baidu-golang/pbrpc
 	}
 
 	// Echo  test publish method with return type has context argument
+	// 方法要求
+	// 参数个数必须为2个， 第一个类型必须为 context.Context 
+	// 第二个类型必须是实现 proto.Message接口
+	// 返回个数可以为1个或2个  第一个类型必须是实现 proto.Message接口 
+	// 第2个参数为可选。 当使用时，必须为 context.Context类型
 	func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
 		var ret = "hello "
 
@@ -65,11 +70,11 @@ $ go get github.com/baidu-golang/pbrpc
 		}
 		dm := DataMessage{}
 		dm.Name = proto.String(ret)
-		return &dm, baidurpc.BindAttachement(context.Background(), []byte("hello"))
+		return &dm, baidurpc.BindAttachement(context.Background(), []byte("hello")) // return with attachement
 	}
    ```
 
-2. 
+2. 指定发布端口，把EchoService发布成RPC服务
 
 ```go
 	serverMeta := baidurpc.ServerMeta{}
@@ -79,9 +84,10 @@ $ go get github.com/baidu-golang/pbrpc
 
 	echoService := new(EchoService)
 
+    // mapping可选，如果需要映射成新的function名称时使用
 	mapping := make(map[string]string)
 	mapping["Echo"] = "echo"
-
+	// 第一个参数 "echoService" 为空时，则会使用 EchoService的struct 的type name
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
 
 	err := rpcServer.StartAndBlock()
