@@ -341,8 +341,12 @@ func (s *TcpServer) Stop() error {
 }
 
 // Register register RPC service
-func (s *TcpServer) Register(service Service) (bool, error) {
-	ss := service
+func (s *TcpServer) Register(service interface{}) (bool, error) {
+	return s.RegisterName("", service)
+}
+
+// Register register RPC service
+func (s *TcpServer) registerServiceType(ss Service) (bool, error) {
 	serviceId := GetServiceId(ss.GetServiceName(), ss.GetMethodName())
 	exsit := s.services[serviceId]
 	if exsit != nil {
@@ -353,6 +357,36 @@ func (s *TcpServer) Register(service Service) (bool, error) {
 	log.Println("Rpc service registered. service=", ss.GetServiceName(), " method=", ss.GetMethodName())
 	s.services[serviceId] = ss
 	return true, nil
+}
+
+// RegisterNameWithMethodMapping call RegisterName with method name mapping map
+func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
+	ss, ok := rcvr.(Service)
+	if !ok {
+		return s.registerWithMethodMapping(name, rcvr, mapping)
+	}
+
+	if name != "" {
+		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
+			return ss.DoService(msg, attachment, logId)
+		}
+		mName := ss.GetMethodName()
+		if mapping != nil {
+			mname, ok := mapping[mName]
+			if ok {
+				mName = mname
+			}
+		}
+		service := &DefaultService{
+			sname:    name,
+			mname:    mName,
+			callback: callback,
+			inType:   ss.NewParameter(),
+		}
+		ss = service
+	}
+
+	return s.registerServiceType(ss)
 }
 
 // RegisterName register publishes in the server with specified name for its set of methods of the
@@ -368,9 +402,8 @@ func (s *TcpServer) RegisterName(name string, rcvr interface{}) (bool, error) {
 	return s.RegisterNameWithMethodMapping(name, rcvr, nil)
 }
 
-// RegisterNameWithMethodMapping call RegisterName with method name mapping map
-//
-func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
+// registerWithMethodMapping call RegisterName with method name mapping map
+func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
 	st := &serviceType{
 		typ:  reflect.TypeOf(rcvr),
 		rcvr: reflect.ValueOf(rcvr),
@@ -557,7 +590,7 @@ func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType prot
 		callback: callback,
 		inType:   inType,
 	}
-	return s.Register(service)
+	return s.registerServiceType(service)
 }
 
 // Attachment utility function to get attachemnt from context

@@ -89,7 +89,9 @@ $ go get github.com/baidu-golang/pbrpc
 	mapping["Echo"] = "echo"
 	// 第一个参数 "echoService" 为空时，则会使用 EchoService的struct 的type name
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
+	// 最简注册方式 rpcServer.Register(echoService)
 
+	// 启动RPC服务
 	err := rpcServer.StartAndBlock()
 
 	if err != nil {
@@ -109,6 +111,7 @@ $ go get github.com/baidu-golang/pbrpc
 	url.SetHost(host).SetPort(port)
     timeout := time.Second * 5
    
+    // 创建连接 
     connection, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
 	if err != nil {
 		fmt.Println(err)
@@ -132,6 +135,10 @@ $ go get github.com/baidu-golang/pbrpc
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)
+
+	// 可选， 设置logid 与  附件 
+	// rpcInvocation.LogId = proto.Int64(1)
+	// rpcInvocation.Attachment = []byte("this is attachement contenet")
 
 	parameterOut := DataMessage{}
 
