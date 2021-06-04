@@ -28,10 +28,14 @@ const COMPRESS_NO int32 = 0
 const COMPRESS_SNAPPY int32 = 1
 const COMPRESS_GZIP int32 = 2
 
+// Writable is the interface that do serialize to []byte
+// if errror ocurres should return non-nil error
 type Writable interface {
 	Write() ([]byte, error)
 }
 
+// Readable is the interface that deserialize from []byte
+// if errror ocurres should return non-nil error
 type Readable interface {
 	Read(bytes []byte) error
 }
@@ -43,6 +47,7 @@ type Header struct {
 	MetaSize    int32
 }
 
+// EmptyHead return a empty head with default value
 func EmptyHead() *Header {
 	h := Header{}
 	h.MagicCode = []byte(MAGIC_CODE)

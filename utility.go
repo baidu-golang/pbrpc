@@ -16,7 +16,6 @@
 package baidurpc
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -27,39 +26,4 @@ func TimetookInSeconds(currentNano int64) float64 {
 	c := time.Now().UnixNano()
 
 	return float64(c-currentNano) / NANO_IN_SECONDS
-}
-
-type AnyFunc func()
-type SafeLoopFuncControl struct {
-	stop chan bool
-}
-
-// NewSafeLoopFuncControl create a new instance for SafeLoopFuncControl
-func NewSafeLoopFuncControl() *SafeLoopFuncControl {
-	return &SafeLoopFuncControl{stop: make(chan bool, 1)}
-}
-
-func (s *SafeLoopFuncControl) LoopGoSafty(f AnyFunc) {
-	defer func() {
-		if p := recover(); p != nil {
-			err := fmt.Errorf("internal error: %v", p)
-			fmt.Println(err)
-		}
-
-	}()
-	for {
-		select {
-		case <-s.stop:
-			fmt.Println("stop in select")
-			return
-		default:
-			f()
-		}
-	}
-
-}
-
-// Stop to stop loop control
-func (s *SafeLoopFuncControl) Stop() {
-	s.stop <- true
 }
