@@ -96,6 +96,8 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 	rpcDataPackage.CompressType(*r.CompressType)
 	rpcDataPackage.LogId(*r.LogId)
 
+	rpcDataPackage.SetAttachment(r.Attachment)
+
 	if *r.ParameterIn != nil {
 		data, err := proto.Marshal(*r.ParameterIn)
 		if err != nil {

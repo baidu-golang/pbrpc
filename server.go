@@ -16,12 +16,16 @@
 package baidurpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"reflect"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/funny/link"
@@ -38,6 +42,12 @@ const (
 
 	/** 未知异常. */
 	ST_ERROR int = 2001
+
+	// attachement key
+	KT_ATTACHMENT = "_attachement_"
+
+	//  log id key
+	KT_LOGID = "_logid_"
 )
 
 // error log info definition
@@ -53,10 +63,28 @@ var LOG_TIMECOUST_INFO2 = "[server-102]Server name '%s' method '%s' process cost
 
 var DEAFULT_IDLE_TIME_OUT_SECONDS = 10
 
+var m proto.Message
+var MessageType = reflect.TypeOf(m)
+
 type ServerMeta struct {
 	Host                *string
 	Port                *int
 	IdleTimeoutSenconds *int
+}
+
+type serviceType struct {
+	name   string                 // name of service
+	rcvr   reflect.Value          // receiver of methods for the service
+	typ    reflect.Type           // type of the receiver
+	method map[string]*methodType // registered methods
+}
+
+type methodType struct {
+	sync.Mutex // protects counters
+	method     reflect.Method
+	ArgType    reflect.Type
+	ReturnType reflect.Type
+	InArgValue interface{}
 }
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
@@ -296,7 +324,7 @@ func doServiceInvoke(msg proto.Message, r *RpcDataPackage, service Service) (pro
 func wrapResponse(r *RpcDataPackage, errorCode int, errorText string) {
 	r.GetMeta().Response = &Response{}
 
-	r.GetMeta().GetResponse().ErrorCode = proto.Int(errorCode)
+	r.GetMeta().GetResponse().ErrorCode = proto.Int32(int32(errorCode))
 	r.GetMeta().GetResponse().ErrorText = proto.String(errorText)
 }
 
@@ -313,8 +341,12 @@ func (s *TcpServer) Stop() error {
 }
 
 // Register register RPC service
-func (s *TcpServer) Register(service Service) (bool, error) {
-	ss := service
+func (s *TcpServer) Register(service interface{}) (bool, error) {
+	return s.RegisterName("", service)
+}
+
+// Register register RPC service
+func (s *TcpServer) registerServiceType(ss Service) (bool, error) {
 	serviceId := GetServiceId(ss.GetServiceName(), ss.GetMethodName())
 	exsit := s.services[serviceId]
 	if exsit != nil {
@@ -322,8 +354,232 @@ func (s *TcpServer) Register(service Service) (bool, error) {
 		Error(err.Error())
 		return false, err
 	}
+	log.Println("Rpc service registered. service=", ss.GetServiceName(), " method=", ss.GetMethodName())
 	s.services[serviceId] = ss
 	return true, nil
+}
+
+// RegisterNameWithMethodMapping call RegisterName with method name mapping map
+func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
+	ss, ok := rcvr.(Service)
+	if !ok {
+		return s.registerWithMethodMapping(name, rcvr, mapping)
+	}
+
+	if name != "" {
+		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
+			return ss.DoService(msg, attachment, logId)
+		}
+		mName := ss.GetMethodName()
+		if mapping != nil {
+			mname, ok := mapping[mName]
+			if ok {
+				mName = mname
+			}
+		}
+		service := &DefaultService{
+			sname:    name,
+			mname:    mName,
+			callback: callback,
+			inType:   ss.NewParameter(),
+		}
+		ss = service
+	}
+
+	return s.registerServiceType(ss)
+}
+
+// RegisterName register publishes in the server with specified name for its set of methods of the
+// receiver value that satisfy the following conditions:
+//	- exported method of exported type
+//	- one argument, exported type  and should be the type implements from proto.Message
+//	- one return value, of type proto.Message
+// It returns an error if the receiver is not an exported type or has
+// no suitable methods. It also logs the error using package log.
+// The client accesses each method using a string of the form "Type.Method",
+// where Type is the receiver's concrete type.
+func (s *TcpServer) RegisterName(name string, rcvr interface{}) (bool, error) {
+	return s.RegisterNameWithMethodMapping(name, rcvr, nil)
+}
+
+// registerWithMethodMapping call RegisterName with method name mapping map
+func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, mapping map[string]string) (bool, error) {
+	st := &serviceType{
+		typ:  reflect.TypeOf(rcvr),
+		rcvr: reflect.ValueOf(rcvr),
+	}
+
+	sname := reflect.Indirect(st.rcvr).Type().Name()
+	if name != "" {
+		sname = name
+	}
+	st.name = sname
+
+	// Install the methods
+	st.method = suitableMethods(st.typ, true)
+
+	if len(st.method) == 0 {
+		str := ""
+
+		// To help the user, see if a pointer receiver would work.
+		method := suitableMethods(reflect.PtrTo(st.typ), false)
+		if len(method) != 0 {
+			str = "rpc.Register: type " + sname + " has no exported methods of suitable type (hint: pass a pointer to value of that type)"
+		} else {
+			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
+		}
+		log.Print(str)
+		return false, errors.New(str)
+	}
+
+	// do register rpc
+	for _, methodType := range st.method {
+		function := methodType.method.Func
+		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
+			// process context value
+			c := context.Background()
+			if attachment != nil {
+				c = context.WithValue(c, KT_ATTACHMENT, attachment)
+			}
+			contextValue := reflect.ValueOf(c)
+
+			var attachement []byte = nil
+
+			returnValues := function.Call([]reflect.Value{st.rcvr, contextValue, reflect.ValueOf(msg)})
+			if len(returnValues) == 1 {
+				return returnValues[0].Interface().(proto.Message), attachement, nil
+			}
+			if len(returnValues) == 2 {
+				ctx := returnValues[1].Interface().(context.Context)
+				v := ctx.Value(KT_ATTACHMENT)
+				if v != nil {
+					attachement = v.([]byte)
+				}
+				return returnValues[0].Interface().(proto.Message), attachement, nil
+			}
+			return nil, attachement, nil
+		}
+		var inType proto.Message = methodType.InArgValue.(proto.Message)
+		if inType == nil {
+			// if not of type proto.Message
+			continue
+		}
+		mName := methodType.method.Name
+		if mapping != nil {
+			mname, ok := mapping[mName]
+			if ok {
+				mName = mname
+			}
+		}
+		s.RegisterRpc(st.name, mName, callback, inType)
+	}
+
+	// function := mtype.method.Func
+	// Invoke the method, providing a new value for the reply.
+	// returnValues := function.Call([]reflect.Value{s.rcvr, argv, replyv})
+
+	return true, nil
+}
+
+// suitableMethods returns suitable Rpc methods of typ, it will report
+// error using log if reportErr is true.
+func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
+	methods := make(map[string]*methodType)
+	for m := 0; m < typ.NumMethod(); m++ {
+		method := typ.Method(m)
+		mtype := method.Type
+		mname := method.Name
+		var inArgValue interface{}
+		var ok bool
+		// Method must be exported.
+		if method.PkgPath != "" {
+			continue
+		}
+		// Method needs two ins: receiver, context, *args.
+		if mtype.NumIn() != 3 {
+			if reportErr {
+				log.Printf("rpc.Register: method %q has %d input parameters; needs exactly three\n", mname, mtype.NumIn())
+			}
+			continue
+		}
+		// and must be type of proto message
+		contextType := mtype.In(1)
+		if !isContextType(contextType) {
+			if reportErr {
+				log.Printf("rpc.Register: argument type of method %q is not implements from context.Context: %q\n", mname, contextType)
+			}
+			continue
+		}
+
+		// and must be type of proto message
+		argType := mtype.In(2)
+		if ok, inArgValue = isMessageType(argType); !ok {
+			if reportErr {
+				log.Printf("rpc.Register: argument type of method %q is not implements from proto.Message: %q\n", mname, argType)
+			}
+			continue
+		}
+		// Method needs one out.
+		if mtype.NumOut() != 1 && mtype.NumOut() != 2 {
+			if reportErr {
+				log.Printf("rpc.Register: method %q has %d output parameters; needs one or two. \n", mname, mtype.NumOut())
+			}
+			continue
+		}
+		// The return type of the method must be error.
+		returnType := mtype.Out(0)
+		if ok, _ := isMessageType(returnType); !ok {
+			if reportErr {
+				log.Printf("rpc.Register: return type of method %q is %q, must be implements from proto.Message\n", mname, returnType)
+			}
+			continue
+		}
+		if mtype.NumOut() == 2 {
+			// The return type of the method must be error.
+			returnContextType := mtype.Out(1)
+			if !isContextType(returnContextType) {
+				if reportErr {
+					log.Printf("rpc.Register: return type of method %q is %q, must be implements from context.Context\n", mname, returnType)
+				}
+				continue
+			}
+		}
+
+		methods[mname] = &methodType{method: method, ArgType: argType,
+			ReturnType: returnType, InArgValue: inArgValue}
+	}
+	return methods
+}
+
+// Is this type implements from proto.Message
+func isMessageType(t reflect.Type) (bool, interface{}) {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	// should not a interface type
+	if t.Kind() == reflect.Interface {
+		return false, nil
+	}
+
+	argv := reflect.New(t)
+	v, ok := argv.Interface().(proto.Message)
+	return ok, v
+}
+
+// Is this type implements from context.Context
+func isContextType(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	if strings.Compare(t.String(), "context.Context") == 0 {
+		return true
+	}
+
+	argv := reflect.New(t)
+	_, ok := argv.Interface().(context.Context)
+	return ok
 }
 
 // RegisterRpc register Rpc direct
@@ -334,5 +590,20 @@ func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType prot
 		callback: callback,
 		inType:   inType,
 	}
-	return s.Register(service)
+	return s.registerServiceType(service)
+}
+
+// Attachment utility function to get attachemnt from context
+func Attachement(context context.Context) []byte {
+
+	v := context.Value(KT_ATTACHMENT)
+	if v == nil {
+		return nil
+	}
+	return v.([]byte)
+}
+
+// BindAttachement add attachement value to the context
+func BindAttachement(c context.Context, attachement interface{}) context.Context {
+	return context.WithValue(c, KT_ATTACHMENT, attachement)
 }
