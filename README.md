@@ -25,120 +25,83 @@ $ go get github.com/baidu-golang/pbrpc
 
 #### 开发RPC服务端
 
-1. 首先需要实现Service接口
+1. 定义PB对象
+   ```go
+   //手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
+	type DataMessage struct {
+		Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	}
+
+	func (m *DataMessage) Reset()         { *m = DataMessage{} }
+	func (m *DataMessage) String() string { return proto.CompactTextString(m) }
+	func (*DataMessage) ProtoMessage()    {}
+
+	func (m *DataMessage) GetName() string {
+		if m.Name != nil {
+			return *m.Name
+		}
+		return ""
+	}
+	```
+2. 定义一个对象以及方法，用于发布服务
 
    ```go
-   type Service interface {
-   	/*
-   	   RPC service call back method.
-   	   message : parameter in from RPC client or 'nil' if has no parameter
-   	   attachment : attachment content from RPC client or 'nil' if has no attachment
-   	   logId : with a int64 type log sequence id from client or 'nil if has no logId
-   	   return:
-   	   [0] message return back to RPC client or 'nil' if need not return method response
-   	   [1] attachment return back to RPC client or 'nil' if need not return attachemnt
-   	   [2] return with any error or 'nil' represents success
-   	*/
-   	DoService(message proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
-   	GetServiceName() string
-   	GetMethodName() string
-       // 获得参数类型，pb会反序化到这个对象
-   	NewParameter() proto.Message
-   }
-   ```
 
-2. Service接口实现示例如下
+	type EchoService struct {
+	}
 
-```go
-type SimpleService struct {
-	serviceName string
-	methodName  string
-}
+	// Echo  test publish method with return type has context argument
+	// 方法要求
+	// 参数个数必须为2个， 第一个类型必须为 context.Context 
+	// 第二个类型必须是实现 proto.Message接口
+	// 返回个数可以为1个或2个  第一个类型必须是实现 proto.Message接口 
+	// 第2个参数为可选。 当使用时，必须为 context.Context类型
+	func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
+		var ret = "hello "
 
-func NewSimpleService(serviceName, methodName string) *SimpleService {
-	ret := SimpleService{serviceName, methodName}
-	return &ret
-}
+		// if receive with attachement
+		attachement := baidurpc.Attachement(c)
+		fmt.Println(c)
 
-func (ss *SimpleService) DoService(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
-	var ret = "hello "
-
-	if msg != nil {
-		var name *string = nil
-
-		m := msg.(*DataMessage)
-		name = m.Name
-
-		if len(*name) == 0 {
+		if len(*in.Name) == 0 {
 			ret = ret + "veryone"
 		} else {
-			ret = ret + *name
+			ret = ret + *in.Name
 		}
+		dm := DataMessage{}
+		dm.Name = proto.String(ret)
+		return &dm, baidurpc.BindAttachement(context.Background(), []byte("hello")) // return with attachement
 	}
-	dm := DataMessage{}
-	dm.Name = proto.String(ret)
-	return &dm, []byte{1, 5, 9}, nil
-
-}
-
-func (ss *SimpleService) GetServiceName() string {
-	return ss.serviceName
-}
-
-func (ss *SimpleService) GetMethodName() string {
-	return ss.methodName
-}
-
-func (ss *SimpleService) NewParameter() proto.Message {
-	ret := DataMessage{}
-	return &ret
-}
-```
-
-
-3. 创建RPC服务并注册该实现接口
-
-   ```go
-   func main() {
-       serverMeta := baidurpc.ServerMeta{}
-   	serverMeta.Host = nil
-   	serverMeta.Port = 8122
-   	rpcServer := baidurpc.NewTpcServer(&serverMeta)
-
-   	ss := NewSimpleService("echoService", "echo")
-
-   	rpcServer.Register(ss)
-
-   	// start server and block here
-   	err := rpcServer.StartAndBlock()
-
-   	if err != nil {
-   		baidurpc.Error(err)
-   		os.Exit(-1)
-   	}
-   }
    ```
+
+2. 指定发布端口，把EchoService发布成RPC服务
+
+```go
+	serverMeta := baidurpc.ServerMeta{}
+	serverMeta.Host = nil
+	serverMeta.Port = Int(*port)
+	rpcServer := baidurpc.NewTpcServer(&serverMeta)
+
+	echoService := new(EchoService)
+
+    // mapping可选，如果需要映射成新的function名称时使用
+	mapping := make(map[string]string)
+	mapping["Echo"] = "echo"
+	// 第一个参数 "echoService" 为空时，则会使用 EchoService的struct 的type name
+	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
+	// 最简注册方式 rpcServer.Register(echoService)
+
+	// 启动RPC服务
+	err := rpcServer.StartAndBlock()
+
+	if err != nil {
+		baidurpc.Error(err)
+		os.Exit(-1)
+	}
+```
 
    至此RPC已经开发完成，运行上面代码，就可以发布完成.
 
-4. DataMessage对象定义如下
-
-```go
-type DataMessage struct {
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-}
-
-func (m *DataMessage) Reset()         { *m = DataMessage{} }
-func (m *DataMessage) String() string { return proto.CompactTextString(m) }
-func (*DataMessage) ProtoMessage()    {}
-
-func (m *DataMessage) GetName() string {
-	if m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
-```
 
 ### 开发RPC客户端
 
@@ -148,6 +111,7 @@ func (m *DataMessage) GetName() string {
 	url.SetHost(host).SetPort(port)
     timeout := time.Second * 5
    
+    // 创建连接 
     connection, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
 	if err != nil {
 		fmt.Println(err)
@@ -171,6 +135,10 @@ func (m *DataMessage) GetName() string {
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)
+
+	// 可选， 设置logid 与  附件 
+	// rpcInvocation.LogId = proto.Int64(1)
+	// rpcInvocation.Attachment = []byte("this is attachement contenet")
 
 	parameterOut := DataMessage{}
 
