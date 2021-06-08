@@ -24,7 +24,6 @@ import (
 	"os/signal"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -573,13 +572,16 @@ func isContextType(t reflect.Type) bool {
 		t = t.Elem()
 	}
 
-	if strings.Compare(t.String(), "context.Context") == 0 {
-		return true
-	}
-
-	argv := reflect.New(t)
-	_, ok := argv.Interface().(context.Context)
+	ok := t.Implements(reflect.TypeOf((*context.Context)(nil)).Elem())
 	return ok
+
+	// if strings.Compare(t.String(), reflect.TypeOf((*context.Context)(nil)).String()) == 0 {
+	// 	return true
+	// }
+
+	// argv := reflect.New(t)
+	// _, ok := argv.Interface().(context.Context)
+	// return ok
 }
 
 // RegisterRpc register Rpc direct
