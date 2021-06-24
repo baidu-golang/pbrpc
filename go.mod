@@ -10,4 +10,5 @@ require (
 	github.com/golang/snappy v0.0.3
 	github.com/jolestar/go-commons-pool/v2 v2.1.1
 	github.com/stretchr/testify v1.7.0
+	google.golang.org/protobuf v1.26.0
 )

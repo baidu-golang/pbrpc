@@ -11,7 +11,7 @@ features:
 - 支持超时功能[Done]
 - 压缩功能，支持GZip与Snappy[Done]
 - 集成内置HTTP管理功能[TODO]
-- Client支持Ha的负载均衡功能[TODO]
+- Client支持Ha的负载均衡功能[Done]
   ​
 ### Installing 
 
@@ -152,6 +152,52 @@ $ go get github.com/baidu-golang/pbrpc
 		fmt.Println("Reponse is nil")
 		return
 	}
+```
+
+### 开发Ha RPC客户端
+
+```go
+ 	urls := []baidurpc.URL{{Host: host, Port: &errPort}, {Host: host, Port: port}}
+
+	connections, err := baidurpc.NewBatchTCPConnection(urls, timeout)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+	defer baidurpc.CloseBatchConnection(connections)
+
+	haClient, err := baidurpc.NewHaRpcCient(connections)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+
+	serviceName := "echoService"
+	methodName := "echo"
+	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+
+	message := "say hello from xiemalin中文测试"
+	dm := DataMessage{&message}
+
+	rpcInvocation.SetParameterIn(&dm)
+	rpcInvocation.LogId = proto.Int64(1)
+	rpcInvocation.Attachment = []byte("hello world")
+
+	parameterOut := DataMessage{}
+
+	response, err := rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+
+	if response == nil {
+		fmt.Println("Reponse is nil")
+		return
+	}
+
+	fmt.Println("attachement", response.Attachment)
+
 ```
 
 ### 依赖三方库  go mod
