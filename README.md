@@ -6,10 +6,10 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
 features:
 
 - 内置连接池，具备更高的性能，低延迟 QPS: 5w+
-- 支持自动重连功能
-- 支持附件发送
-- 支持超时功能
-- 压缩功能，支持GZip与Snappy[TODO]
+- 支持自动重连功能[Done]
+- 支持附件发送[Done]
+- 支持超时功能[Done]
+- 压缩功能，支持GZip与Snappy[Done]
 - 集成内置HTTP管理功能[TODO]
 - Client支持Ha的负载均衡功能[TODO]
   ​
