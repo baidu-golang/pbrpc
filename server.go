@@ -42,9 +42,6 @@ const (
 	/** 未知异常. */
 	ST_ERROR int = 2001
 
-	// attachement key
-	KT_ATTACHMENT = "_attachement_"
-
 	//  log id key
 	KT_LOGID = "_logid_"
 )
@@ -85,6 +82,11 @@ type methodType struct {
 	ReturnType reflect.Type
 	InArgValue interface{}
 }
+
+type attachement struct {
+}
+
+var attachementKey attachement
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
 
@@ -191,10 +193,7 @@ func (s *TcpServer) Start() error {
 	go server.Serve()
 
 	s.started = true
-	defer func() {
-		s.started = false
-	}()
-
+	s.stop = false
 	Infof(LOG_SERVER_STARTED_INFO, host, *port)
 
 	return nil
@@ -205,7 +204,7 @@ func (s *TcpServer) StartAndBlock() error {
 	if err != nil {
 		return err
 	}
-
+	defer s.Stop()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 
@@ -333,6 +332,7 @@ func GetServiceId(serviceName, methodName string) string {
 
 func (s *TcpServer) Stop() error {
 	s.stop = true
+	s.started = false
 	if s.server != nil {
 		s.server.Stop()
 	}
@@ -438,7 +438,7 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			// process context value
 			c := context.Background()
 			if attachment != nil {
-				c = context.WithValue(c, KT_ATTACHMENT, attachment)
+				c = context.WithValue(c, attachementKey, attachment)
 			}
 			contextValue := reflect.ValueOf(c)
 
@@ -450,7 +450,7 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			}
 			if len(returnValues) == 2 {
 				ctx := returnValues[1].Interface().(context.Context)
-				v := ctx.Value(KT_ATTACHMENT)
+				v := ctx.Value(attachementKey)
 				if v != nil {
 					attachement = v.([]byte)
 				}
@@ -598,7 +598,7 @@ func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType prot
 // Attachment utility function to get attachemnt from context
 func Attachement(context context.Context) []byte {
 
-	v := context.Value(KT_ATTACHMENT)
+	v := context.Value(attachementKey)
 	if v == nil {
 		return nil
 	}
@@ -607,5 +607,5 @@ func Attachement(context context.Context) []byte {
 
 // BindAttachement add attachement value to the context
 func BindAttachement(c context.Context, attachement interface{}) context.Context {
-	return context.WithValue(c, KT_ATTACHMENT, attachement)
+	return context.WithValue(c, attachementKey, attachement)
 }
