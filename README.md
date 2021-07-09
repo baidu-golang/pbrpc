@@ -185,7 +185,7 @@ $ go get github.com/baidu-golang/pbrpc
 
 	parameterOut := DataMessage{}
 
-	response, err := rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
+	response, err := haClient.SendRpcRequest(rpcInvocation, &parameterOut)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
