@@ -51,8 +51,7 @@ type TCPConnection struct {
 func NewTCPConnection(url URL, timeout *time.Duration) (*TCPConnection, error) {
 	connection := TCPConnection{}
 
-	var err error
-	err = connection.connect(url, timeout, 0)
+	err := connection.connect(url, timeout, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -67,11 +66,11 @@ func (c *TCPConnection) connect(url URL, timeout *time.Duration, sendChanSize in
 	}
 	port := url.Port
 	if port == nil || *port <= 0 {
-		return errors.New(fmt.Sprintf(LOG_INVALID_PORT, port))
+		return fmt.Errorf(fmt.Sprintf(LOG_INVALID_PORT, port))
 	}
 
 	u := *host + ":" + strconv.Itoa(*port)
-	protocol := &RpcDataPackageProtocol{}
+	protocol := &RpcDataPackageProtocol{timeout: timeout}
 	var session *link.Session
 	var err error
 	if timeout == nil {
@@ -90,8 +89,7 @@ func (c *TCPConnection) TestConnection() error {
 	if c.session == nil {
 		return ERR_SESSION_IS_NIL
 	}
-
-	b, _ := EmptyHead().Write()
+	b, _ := NewRpcDataPackage().Write()
 	err := c.session.Send(b)
 	if err != nil {
 		return err

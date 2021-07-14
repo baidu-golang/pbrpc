@@ -43,6 +43,7 @@ type Connection interface {
 type TCPConnectionPool struct {
 	Config     *pool.ObjectPoolConfig
 	objectPool *pool.ObjectPool
+	timeout    *time.Duration
 }
 
 func NewDefaultTCPConnectionPool(url URL, timeout *time.Duration) (*TCPConnectionPool, error) {
@@ -50,7 +51,7 @@ func NewDefaultTCPConnectionPool(url URL, timeout *time.Duration) (*TCPConnectio
 }
 
 func NewTCPConnectionPool(url URL, timeout *time.Duration, config *pool.ObjectPoolConfig) (*TCPConnectionPool, error) {
-	connection := TCPConnectionPool{}
+	connection := TCPConnectionPool{timeout: timeout}
 	if config == nil {
 		connection.Config = pool.NewDefaultPoolConfig()
 		connection.Config.TestOnBorrow = true
@@ -69,7 +70,7 @@ func NewTCPConnectionPool(url URL, timeout *time.Duration, config *pool.ObjectPo
 
 func (c *TCPConnectionPool) connect(url URL, timeout *time.Duration, sendChanSize int) error {
 
-	factory := ConnectionPoolFactory{}
+	factory := ConnectionPoolFactory{timeout: timeout}
 	factory.url = &url
 
 	var objectPool *pool.ObjectPool
@@ -132,7 +133,8 @@ func (c *TCPConnectionPool) GetNumActive() int {
 }
 
 type ConnectionPoolFactory struct {
-	url *URL
+	url     *URL
+	timeout *time.Duration
 }
 
 func (c *ConnectionPoolFactory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
@@ -141,7 +143,7 @@ func (c *ConnectionPoolFactory) MakeObject(ctx context.Context) (*pool.PooledObj
 	}
 
 	connection := TCPConnection{}
-	err := connection.connect(*c.url, nil, 0)
+	err := connection.connect(*c.url, c.timeout, 0)
 	if err != nil {
 		return nil, err
 	}

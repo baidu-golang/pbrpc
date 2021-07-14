@@ -40,7 +40,7 @@ type RpcDataPackageCodec struct {
 	readWriter io.ReadWriter
 	closer     io.Closer
 	p          *RpcDataPackageProtocol
-	timeout    *int
+	timeout    *time.Duration
 }
 
 // Here begin to implements link module Codec interface for RpcDataPackageCodec
@@ -109,9 +109,7 @@ func (r *RpcDataPackageCodec) Receive() (interface{}, error) {
 
 	if r.timeout != nil { // set time out
 		conn := rw.(net.Conn)
-		t := *r.timeout
-		timeout := time.Duration(t) * time.Second
-		conn.SetReadDeadline(time.Now().Add(timeout))
+		conn.SetReadDeadline(time.Now().Add(*r.timeout))
 	}
 
 	dataPackage := NewRpcDataPackage()
@@ -137,7 +135,7 @@ func (r *RpcDataPackageCodec) Close() error {
 }
 
 // set connection io read and write dead line
-func (r *RpcDataPackageCodec) SetTimeout(timeout *int) {
+func (r *RpcDataPackageCodec) SetTimeout(timeout *time.Duration) {
 	r.timeout = timeout
 }
 
@@ -151,12 +149,14 @@ type Protocol interface {
 
 // Protocol codec factory object for RpcDataPackage
 type RpcDataPackageProtocol struct {
+	timeout *time.Duration
 }
 
 func (r *RpcDataPackageProtocol) NewCodec(rw io.ReadWriter) (link.Codec, error) {
 	rpcDataPackage := &RpcDataPackageCodec{
 		readWriter: rw,
 		p:          r,
+		timeout:    r.timeout,
 	}
 
 	rpcDataPackage.closer, _ = rw.(io.Closer)
