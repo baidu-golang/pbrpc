@@ -78,9 +78,7 @@ func (r *RpcDataPackageCodec) Send(msg interface{}) error {
 	rw := r.readWriter
 	if r.timeout != nil {
 		conn := rw.(net.Conn)
-		t := *r.timeout
-		timeout := time.Duration(t) * time.Second
-		conn.SetWriteDeadline(time.Now().Add(timeout))
+		conn.SetWriteDeadline(time.Now().Add(*r.timeout))
 	}
 
 	err := dataPackage.WriteIO(rw)
