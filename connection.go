@@ -89,13 +89,11 @@ func (c *TCPConnection) TestConnection() error {
 	if c.session == nil {
 		return ERR_SESSION_IS_NIL
 	}
-	b, _ := NewRpcDataPackage().Write()
-	err := c.session.Send(b)
-	if err != nil {
-		return err
+	closed := c.session.IsClosed()
+	if closed {
+		return fmt.Errorf("session closed")
 	}
-	_, err = c.session.Receive()
-	return err
+	return nil
 }
 
 func (c *TCPConnection) GetId() uint64 {

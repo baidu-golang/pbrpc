@@ -170,7 +170,7 @@ func (c *ConnectionPoolFactory) ValidateObject(ctx context.Context, object *pool
 
 	conn := obj.(ConnectionTester)
 
-	return conn.TestConnection() != nil
+	return conn.TestConnection() == nil
 }
 
 func (c *ConnectionPoolFactory) ActivateObject(ctx context.Context, object *pool.PooledObject) error {
