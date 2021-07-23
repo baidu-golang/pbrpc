@@ -93,8 +93,12 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 	rpcDataPackage.ServiceName(*r.ServiceName)
 	rpcDataPackage.MethodName(*r.MethodName)
 	rpcDataPackage.MagicCode(MAGIC_CODE)
-	rpcDataPackage.CompressType(*r.CompressType)
-	rpcDataPackage.LogId(*r.LogId)
+	if r.CompressType != nil {
+		rpcDataPackage.CompressType(*r.CompressType)
+	}
+	if r.LogId != nil {
+		rpcDataPackage.LogId(*r.LogId)
+	}
 
 	rpcDataPackage.SetAttachment(r.Attachment)
 

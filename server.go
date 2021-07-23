@@ -142,6 +142,11 @@ type Server interface {
 	Register(service *Service) (bool, error)
 }
 
+// ErrorContext
+type ErrorContext struct {
+	err error
+}
+
 type TcpServer struct {
 	serverMeta *ServerMeta
 	services   map[string]Service
@@ -265,7 +270,11 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 		}
 		// do service here
 		now2 := time.Now().Unix()
-		messageRet, attachment, err := doServiceInvoke(msg, r, service)
+		ec := &ErrorContext{}
+		messageRet, attachment, err := doServiceInvoke(ec, msg, r, service)
+		if ec.err != nil {
+			err = ec.err
+		}
 		if err != nil {
 			wrapResponse(r, ST_ERROR, err.Error())
 			err = session.Send(r)
@@ -308,11 +317,12 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 
 }
 
-func doServiceInvoke(msg proto.Message, r *RpcDataPackage, service Service) (proto.Message, []byte, error) {
+func doServiceInvoke(c *ErrorContext, msg proto.Message, r *RpcDataPackage, service Service) (proto.Message, []byte, error) {
 	var err error
 	defer func() {
 		if p := recover(); p != nil {
 			err = fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, p)
+			c.err = err
 			log.Println(err.Error())
 		}
 	}()
