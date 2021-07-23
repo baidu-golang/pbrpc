@@ -72,7 +72,7 @@ func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, 
 	// bind attachment
 	cc := baidurpc.BindAttachement(context.Background(), []byte("hello"))
 	// bind with err
-	cc = baidurpc.BindError(cc, nil)
+	// cc = baidurpc.BindError(cc, errors.New("manule error"))
 	return &dm, cc
 }
 
