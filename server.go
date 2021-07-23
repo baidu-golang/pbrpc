@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"reflect"
@@ -171,6 +172,34 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	return &tcpServer
 }
 
+func (s *TcpServer) StartServer(l net.Listener) error {
+	if s.serverMeta == nil {
+		return ERR_SERVER_NOT_INIT
+	}
+
+	host := ""
+	if s.serverMeta.Host != nil {
+		host = *s.serverMeta.Host
+	}
+
+	port := s.serverMeta.Port
+	if port == nil || *port <= 0 {
+		return ERR_INVALID_PORT
+	}
+
+	protocol := &RpcDataPackageProtocol{}
+	server := link.NewServer(l, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
+
+	s.server = server
+	go server.Serve()
+
+	s.started = true
+	s.stop = false
+	Infof(LOG_SERVER_STARTED_INFO, host, *port)
+
+	return nil
+}
+
 func (s *TcpServer) Start() error {
 	if s.serverMeta == nil {
 		return ERR_SERVER_NOT_INIT
@@ -189,20 +218,12 @@ func (s *TcpServer) Start() error {
 
 	addr = addr + host + ":" + strconv.Itoa(*port)
 
-	protocol := &RpcDataPackageProtocol{}
-	server, err := link.Listen("tcp", addr, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
+	listener, err := net.Listen("tcp", addr)
 
 	if err != nil {
 		return err
 	}
-	s.server = server
-	go server.Serve()
-
-	s.started = true
-	s.stop = false
-	Infof(LOG_SERVER_STARTED_INFO, host, *port)
-
-	return nil
+	return s.StartServer(listener)
 }
 
 func (s *TcpServer) StartAndBlock() error {
