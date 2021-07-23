@@ -1,3 +1,8 @@
+/*
+ * @Author: Malin Xie
+ * @Description:
+ * @Date: 2021-06-04 14:25:31
+ */
 package main
 
 import (
@@ -63,7 +68,12 @@ func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, 
 	}
 	dm := DataMessage{}
 	dm.Name = proto.String(ret)
-	return &dm, baidurpc.BindAttachement(context.Background(), []byte("hello"))
+
+	// bind attachment
+	cc := baidurpc.BindAttachement(context.Background(), []byte("hello"))
+	// bind with err
+	cc = baidurpc.BindError(cc, nil)
+	return &dm, cc
 }
 
 // EchoWithoutContext

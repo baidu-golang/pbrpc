@@ -87,6 +87,7 @@ type attachement struct {
 }
 
 var attachementKey attachement
+var errorKey struct{}
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
 
@@ -442,21 +443,20 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			}
 			contextValue := reflect.ValueOf(c)
 
-			var attachement []byte = nil
+			var attachmentRet []byte = nil
+			var err error
 
 			returnValues := function.Call([]reflect.Value{st.rcvr, contextValue, reflect.ValueOf(msg)})
 			if len(returnValues) == 1 {
-				return returnValues[0].Interface().(proto.Message), attachement, nil
+				return returnValues[0].Interface().(proto.Message), attachmentRet, nil
 			}
 			if len(returnValues) == 2 {
 				ctx := returnValues[1].Interface().(context.Context)
-				v := ctx.Value(attachementKey)
-				if v != nil {
-					attachement = v.([]byte)
-				}
-				return returnValues[0].Interface().(proto.Message), attachement, nil
+				attachmentRet = Attachement(ctx)
+				err = Errors(ctx)
+				return returnValues[0].Interface().(proto.Message), attachmentRet, err
 			}
-			return nil, attachement, nil
+			return nil, attachmentRet, nil
 		}
 		var inType proto.Message = methodType.InArgValue.(proto.Message)
 		if inType == nil {
@@ -608,4 +608,18 @@ func Attachement(context context.Context) []byte {
 // BindAttachement add attachement value to the context
 func BindAttachement(c context.Context, attachement interface{}) context.Context {
 	return context.WithValue(c, attachementKey, attachement)
+}
+
+// BindError add error value to the context
+func BindError(c context.Context, err error) context.Context {
+	return context.WithValue(c, errorKey, err)
+}
+
+// BindError add error value to the context
+func Errors(c context.Context) error {
+	v := c.Value(errorKey)
+	if v == nil {
+		return nil
+	}
+	return v.(error)
 }
