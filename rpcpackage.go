@@ -19,8 +19,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
@@ -374,6 +376,9 @@ func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 
 	// unmarshal Head message
 	r.Head.Read(head)
+	if strings.Compare(string(r.Head.MagicCode), MAGIC_CODE) != 0 {
+		return fmt.Errorf("invalid magic code '%v'", string(r.Head.MagicCode))
+	}
 
 	// get RPC Meta size
 	metaSize := r.Head.GetMetaSize()
