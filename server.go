@@ -53,7 +53,7 @@ var ERR_INVALID_PORT = errors.New("[server-002]port of server is nil or invalid"
 var ERR_RESPONSE_TO_CLIENT = errors.New("[server-003]response call session.Send to client failed")
 var LOG_SERVICE_NOTFOUND = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found"
 var LOG_SERVICE_DUPLICATE = "[server-004]Service name '%s' or method name '%s' already exist"
-var LOG_SERVER_STARTED_INFO = "[server-100]Server started on '%s' of port '%d'"
+var LOG_SERVER_STARTED_INFO = "[server-100]BaiduRpc server started on '%v'"
 var LOG_INTERNAL_ERROR = "[server-" + strconv.Itoa(ST_ERROR) + "] unknown internal error:'%s'"
 var LOG_TIMECOUST_INFO = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 var LOG_TIMECOUST_INFO2 = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
@@ -173,19 +173,6 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 }
 
 func (s *TcpServer) StartServer(l net.Listener) error {
-	if s.serverMeta == nil {
-		return ERR_SERVER_NOT_INIT
-	}
-
-	host := ""
-	if s.serverMeta.Host != nil {
-		host = *s.serverMeta.Host
-	}
-
-	port := s.serverMeta.Port
-	if port == nil || *port <= 0 {
-		return ERR_INVALID_PORT
-	}
 
 	protocol := &RpcDataPackageProtocol{}
 	server := link.NewServer(l, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
@@ -195,7 +182,7 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 
 	s.started = true
 	s.stop = false
-	Infof(LOG_SERVER_STARTED_INFO, host, *port)
+	Infof(LOG_SERVER_STARTED_INFO, l.Addr())
 
 	return nil
 }
