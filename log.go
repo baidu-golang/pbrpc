@@ -1,8 +1,3 @@
-/*
- * @Author: Malin Xie
- * @Description:
- * @Date: 2021-04-26 18:18:59
- */
 // Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.

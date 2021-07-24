@@ -125,7 +125,7 @@ func (r *RpcDataPackageCodec) Receive() (interface{}, error) {
 // return non-nil if any error ocurred while doing close
 func (r *RpcDataPackageCodec) Close() error {
 	if r.closer != nil {
-		log.Println(LOG_CLOSE_CONNECT_INFO, r.closer)
+		log.Printf(LOG_CLOSE_CONNECT_INFO, r.closer)
 		return r.closer.Close()
 	}
 	return nil
