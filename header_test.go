@@ -1,3 +1,8 @@
+/*
+ * @Author: Malin Xie
+ * @Description:
+ * @Date: 2021-04-26 18:18:59
+ */
 // Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
@@ -17,11 +22,9 @@ package baidurpc_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRpcDataWriteReader(t *testing.T) {
@@ -42,7 +45,5 @@ func TestRpcDataWriteReader(t *testing.T) {
 	if !bytes.Equal(h.GetMagicCode(), h2.GetMagicCode()) {
 		t.Errorf("magic code is not same. expect '%b' actual is '%b'", h.GetMagicCode(), h2.GetMagicCode())
 	}
-
-	assert.Equal(t, h.GetMessageSize(), h2.GetMessageSize(), fmt.Sprintf("expect message size is %d, acutal value is %d", h.GetMessageSize(), h2.GetMessageSize()))
 
 }

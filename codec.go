@@ -18,14 +18,13 @@ package baidurpc
 import (
 	"errors"
 	"io"
+	"log"
 	"net"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/funny/link"
-
-	"github.com/golang/glog"
 )
 
 const REQUIRED_TYPE = "baidurpc.RpcDataPackage"
@@ -126,7 +125,7 @@ func (r *RpcDataPackageCodec) Receive() (interface{}, error) {
 // return non-nil if any error ocurred while doing close
 func (r *RpcDataPackageCodec) Close() error {
 	if r.closer != nil {
-		glog.Infof(LOG_CLOSE_CONNECT_INFO, r.closer)
+		log.Println(LOG_CLOSE_CONNECT_INFO, r.closer)
 		return r.closer.Close()
 	}
 	return nil
