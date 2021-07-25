@@ -10,8 +10,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"strconv"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
+	"github.com/baidu-golang/pbrpc/nettool"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -39,12 +42,35 @@ func main() {
 	mapping["Echo"] = "echo"
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
 
-	err := rpcServer.StartAndBlock()
+	addr := ":" + strconv.Itoa(*port)
+	var headsize uint8 = 9
+	selector, err := nettool.NewCustomListenerSelectorByAddr(addr, headsize, nettool.StartWith_Mode)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	rpcServerListener, err := selector.RegisterListener(baidurpc.MAGIC_CODE) //"PRPC"
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	// httpServerListener := selector.RegisterDefaultListener()
+	go selector.Serve()
+
+	rpcServer.StartServer(rpcServerListener)
 
 	if err != nil {
 		baidurpc.Error(err)
 		os.Exit(-1)
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
+
+	// Block until a signal is received.
+	fmt.Println("Press Ctrl+C or send kill sinal to exit.")
+	<-c
 }
 
 type EchoService struct {
