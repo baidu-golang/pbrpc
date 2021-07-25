@@ -7,11 +7,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/baidu-golang/pbrpc/nettool"
@@ -25,6 +29,10 @@ func init() {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
+}
+
+type info struct {
+	sTime time.Time
 }
 
 func main() {
@@ -55,7 +63,19 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	// httpServerListener := selector.RegisterDefaultListener()
+	httpServerListener := selector.RegisterDefaultListener()
+
+	hsv := HttpStatusView{&info{sTime: time.Now()}}
+	srv := &http.Server{
+		Handler: &hsv,
+	}
+	go func() {
+		// service connections
+		if err := srv.Serve(httpServerListener); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
 	go selector.Serve()
 
 	rpcServer.StartServer(rpcServerListener)
@@ -71,6 +91,15 @@ func main() {
 	// Block until a signal is received.
 	fmt.Println("Press Ctrl+C or send kill sinal to exit.")
 	<-c
+}
+
+type HttpStatusView struct {
+	server *info
+}
+
+func (hsv *HttpStatusView) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	v, _ := json.Marshal(hsv.server.sTime)
+	w.Write(v)
 }
 
 type EchoService struct {
