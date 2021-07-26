@@ -38,19 +38,15 @@ type info struct {
 func main() {
 
 	serverMeta := baidurpc.ServerMeta{}
-	serverMeta.Host = nil
-	serverMeta.Port = Int(*port)
 	rpcServer := baidurpc.NewTpcServer(&serverMeta)
 
 	echoService := new(EchoService)
-
-	// rpcServer.RegisterName("echoService", echoService)
 
 	mapping := make(map[string]string)
 	mapping["Echo"] = "echo"
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
 
-	addr := ":" + strconv.Itoa(*port)
+	addr := ":" + strconv.Itoa(*port) // host and port
 	var headsize uint8 = 9
 	selector, err := nettool.NewCustomListenerSelectorByAddr(addr, headsize, nettool.StartWith_Mode)
 	if err != nil {
