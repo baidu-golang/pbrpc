@@ -45,6 +45,11 @@ const (
 
 	//  log id key
 	KT_LOGID = "_logid_"
+
+	RPC_STATUS_SERVICENAME = "___baidurpc_service"
+
+	// in seconds
+	Reqeust_QPS_Expire = 300 //
 )
 
 // error log info definition
@@ -154,6 +159,8 @@ type TcpServer struct {
 	started    bool
 	stop       bool
 	server     *link.Server
+
+	requestStatus *RPCRequestStatus
 }
 
 func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
@@ -168,6 +175,11 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	}
 
 	tcpServer.serverMeta = serverMeta
+
+	// register status rpc method
+	hsv := &HttpStatusView{server: &tcpServer}
+
+	tcpServer.RegisterName(RPC_STATUS_SERVICENAME, hsv)
 
 	return &tcpServer
 }
@@ -184,7 +196,10 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 	s.stop = false
 	Infof(LOG_SERVER_STARTED_INFO, l.Addr())
 
-	return nil
+	s.requestStatus = NewRPCRequestStatus(s.services) // inital request status monitor
+	s.requestStatus.expireAfterSecs = Reqeust_QPS_Expire
+	err := s.requestStatus.Start()
+	return err
 }
 
 func (s *TcpServer) Start() error {
@@ -210,6 +225,7 @@ func (s *TcpServer) Start() error {
 	if err != nil {
 		return err
 	}
+
 	return s.StartServer(listener)
 }
 
@@ -277,8 +293,11 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			}
 		}
 		// do service here
-		now2 := time.Now().Unix()
+
+		now2 := time.Now()
 		ec := &ErrorContext{}
+		// do moinitor
+		s.requestStatus.RequestIn(serviceId, now2)
 		messageRet, attachment, err := doServiceInvoke(ec, msg, r, service)
 		if ec.err != nil {
 			err = ec.err
@@ -291,7 +310,7 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			}
 			return
 		}
-		took2 := TimetookInSeconds(now2)
+		took2 := TimetookInSeconds(now2.Unix())
 		Infof(LOG_TIMECOUST_INFO2, serviceName, methodName, took2)
 
 		if messageRet == nil {
@@ -453,6 +472,10 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 	// do register rpc
 	for _, methodType := range st.method {
 		function := methodType.method.Func
+		hasArgType := false
+		if methodType.ArgType != nil {
+			hasArgType = true
+		}
 		callback := func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error) {
 			// process context value
 			c := context.Background()
@@ -464,7 +487,13 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			var attachmentRet []byte = nil
 			var err error
 
-			returnValues := function.Call([]reflect.Value{st.rcvr, contextValue, reflect.ValueOf(msg)})
+			var returnValues []reflect.Value
+			if hasArgType {
+				returnValues = function.Call([]reflect.Value{st.rcvr, contextValue, reflect.ValueOf(msg)})
+			} else {
+				returnValues = function.Call([]reflect.Value{st.rcvr, contextValue})
+			}
+
 			if len(returnValues) == 1 {
 				return returnValues[0].Interface().(proto.Message), attachmentRet, nil
 			}
@@ -476,10 +505,14 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			}
 			return nil, attachmentRet, nil
 		}
-		var inType proto.Message = methodType.InArgValue.(proto.Message)
-		if inType == nil {
-			// if not of type proto.Message
-			continue
+		var inType proto.Message
+		if methodType.InArgValue != nil {
+			inType = methodType.InArgValue.(proto.Message)
+			if inType == nil {
+				// if not of type proto.Message
+				continue
+			}
+
 		}
 		mName := methodType.method.Name
 		if mapping != nil {
@@ -513,7 +546,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 			continue
 		}
 		// Method needs two ins: receiver, context, *args.
-		if mtype.NumIn() != 3 {
+		if mtype.NumIn() != 2 && mtype.NumIn() != 3 {
 			if reportErr {
 				log.Printf("rpc.Register: method %q has %d input parameters; needs exactly three\n", mname, mtype.NumIn())
 			}
@@ -529,12 +562,15 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		}
 
 		// and must be type of proto message
-		argType := mtype.In(2)
-		if ok, inArgValue = isMessageType(argType); !ok {
-			if reportErr {
-				log.Printf("rpc.Register: argument type of method %q is not implements from proto.Message: %q\n", mname, argType)
+		var argType reflect.Type
+		if mtype.NumIn() == 3 {
+			argType = mtype.In(2)
+			if ok, inArgValue = isMessageType(argType); !ok {
+				if reportErr {
+					log.Printf("rpc.Register: argument type of method %q is not implements from proto.Message: %q\n", mname, argType)
+				}
+				continue
 			}
-			continue
 		}
 		// Method needs one out.
 		if mtype.NumOut() != 1 && mtype.NumOut() != 2 {

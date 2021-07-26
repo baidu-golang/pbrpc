@@ -102,7 +102,7 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 
 	rpcDataPackage.SetAttachment(r.Attachment)
 
-	if *r.ParameterIn != nil {
+	if r.ParameterIn != nil {
 		data, err := proto.Marshal(*r.ParameterIn)
 		if err != nil {
 			return nil, err
