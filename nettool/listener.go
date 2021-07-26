@@ -44,7 +44,7 @@ func (l *CustomListener) Addr() net.Addr {
 	return l.listenerProxy.Addr()
 }
 
-// CustomListenerSelector a selector CustomListener by head(begin 4 bytes) value
+// CustomListenerSelector a selector CustomListener by head value
 type CustomListenerSelector struct {
 	headSize        uint8
 	defaultListener *CustomListener
@@ -61,22 +61,29 @@ func NewCustomListenerSelector(host string, port int, headsize uint8, matchMode 
 
 // NewCustomListenerSelectorByAddr new a CustomListenerSelector by address string
 func NewCustomListenerSelectorByAddr(server string, headsize uint8, matchMode int) (*CustomListenerSelector, error) {
-	if matchMode != Equal_Mode && matchMode != StartWith_Mode {
-		return nil, fmt.Errorf("invalid match mode value %d", matchMode)
-	}
-
 	listener, err := net.Listen("tcp", server)
 	if err != nil {
 		return nil, err
 	}
-	selector := &CustomListenerSelector{listenerProxy: listener, headSize: headsize, matchMode: matchMode}
+
+	return NewCustomListenerSelectorByListener(listener, headsize, matchMode)
+}
+
+// NewCustomListenerSelectorByListener
+func NewCustomListenerSelectorByListener(l net.Listener, headsize uint8, matchMode int) (*CustomListenerSelector, error) {
+	if matchMode != Equal_Mode && matchMode != StartWith_Mode {
+		return nil, fmt.Errorf("invalid match mode value %d", matchMode)
+	}
+
+	selector := &CustomListenerSelector{listenerProxy: l, headSize: headsize, matchMode: matchMode}
 	selector.listeners = make(map[string]*CustomListener)
 
-	selector.defaultListener = &CustomListener{listenerProxy: listener, sessionChan: make(chan NetInfo)}
+	selector.defaultListener = &CustomListener{listenerProxy: l, sessionChan: make(chan NetInfo)}
 
 	return selector, nil
 }
 
+// RegisterListener
 func (server *CustomListenerSelector) RegisterListener(headMagiccode string) (net.Listener, error) {
 	if len(headMagiccode) != int(server.headSize) && server.matchMode == Equal_Mode {
 		return nil, fmt.Errorf("error head magic code '%s', size should be '%d'", headMagiccode, server.headSize)
@@ -86,6 +93,7 @@ func (server *CustomListenerSelector) RegisterListener(headMagiccode string) (ne
 	return listener, nil
 }
 
+// RegisterDefaultListener
 func (server *CustomListenerSelector) RegisterDefaultListener() net.Listener {
 	return server.defaultListener
 }
