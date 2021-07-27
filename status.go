@@ -31,6 +31,10 @@ type RPCMethod struct {
 	Method  string `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
 }
 
+type QpsData struct {
+	Qpsinfo map[int64]int32 `protobuf:"bytes,1,rep,name=qpsinfo,proto3" json:"qpsinfo,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+}
+
 func (m *RPCStatus) Reset()         { *m = RPCStatus{} }
 func (m *RPCStatus) String() string { return proto.CompactTextString(m) }
 func (*RPCStatus) ProtoMessage()    {}
@@ -38,6 +42,10 @@ func (*RPCStatus) ProtoMessage()    {}
 func (m *RPCMethod) Reset()         { *m = RPCMethod{} }
 func (m *RPCMethod) String() string { return proto.CompactTextString(m) }
 func (*RPCMethod) ProtoMessage()    {}
+
+func (m *QpsData) Reset()         { *m = QpsData{} }
+func (m *QpsData) String() string { return proto.CompactTextString(m) }
+func (*QpsData) ProtoMessage()    {}
 
 func (hsv *HttpStatusView) Status(c context.Context) (*RPCStatus, context.Context) {
 	s := hsv.server
@@ -64,6 +72,18 @@ func (hsv *HttpStatusView) Status(c context.Context) (*RPCStatus, context.Contex
 	return result, c
 }
 
+func (hsv *HttpStatusView) QpsDataStatus(c context.Context, method *RPCMethod) (*QpsData, context.Context) {
+	serviceId := GetServiceId(method.Service, method.Method)
+	ret := &QpsData{Qpsinfo: make(map[int64]int32)}
+	requestStatus, ok := hsv.server.requestStatus.Methods[serviceId]
+	if ok {
+		ret.Qpsinfo = requestStatus.QpsStatus
+	}
+	// add current current
+	ret.Qpsinfo[time.Now().Unix()] += 0
+	return ret, c
+}
+
 // RPCRequestStatus
 type RPCRequestStatus struct {
 	Methods map[string]*RPCMethodReuqestStatus
@@ -82,6 +102,7 @@ type RPCRequestStatus struct {
 type request struct {
 	method string
 	t      time.Time
+	count  int
 }
 
 // RPCMethodReuqestStatus
@@ -106,7 +127,7 @@ func NewRPCRequestStatus(services map[string]Service) *RPCRequestStatus {
 
 // Start
 func (r *RPCRequestStatus) Start() error {
-	Info("RPC method eeuqest status record starting")
+	Infof("RPC method reuqest status record starting. expire time within %d seconds ", r.expireAfterSecs)
 	r.started = true
 
 	// start time wheel to delete expire data
@@ -129,13 +150,22 @@ func (r *RPCRequestStatus) Start() error {
 			k := m.t.Unix()
 			count, ok := status.QpsStatus[k]
 			if !ok {
-				count = 1
+				count = int32(m.count)
+				// add task
+				task := timewheel.Task{
+					Data: m,
+					TimeoutCallback: func(tt timewheel.Task) { // call back function on time out
+						k := tt.Data.(request)
+						r.expire(k.method, k.t)
+
+					}}
+				// add task and return unique task id
+				r.tw.AddTask(time.Duration(r.expireAfterSecs)*time.Second, task) // add delay task
 			} else {
-				count++
+				count += int32(m.count)
 			}
 			status.QpsStatus[k] = count
 
-			fmt.Println("request record", m.method, count)
 		case <-r.closeChan:
 			r.started = false
 			return nil
@@ -145,30 +175,21 @@ func (r *RPCRequestStatus) Start() error {
 }
 
 // RequestIn
-func (r *RPCRequestStatus) RequestIn(methodName string, t time.Time) error {
+func (r *RPCRequestStatus) RequestIn(methodName string, t time.Time, count int) error {
 	if !r.started {
 		return fmt.Errorf("RequestIn failed status not started")
 	}
-	req := request{method: methodName, t: t}
+	req := request{method: methodName, t: t, count: count}
 	r.reqeustChan <- req
 
-	task := timewheel.Task{
-		Data: req,
-		TimeoutCallback: func(tt timewheel.Task) { // call back function on time out
-			k := tt.Data.(request)
-			r.expire(k.method, k.t)
-
-		}}
-
-	// add task and return unique task id
-	_, err := r.tw.AddTask(time.Duration(r.expireAfterSecs)*time.Second, task) // add delay task
-	return err
+	return nil
 }
 
 func (r *RPCRequestStatus) expire(methodName string, t time.Time) {
 	status, ok := r.Methods[methodName]
 	if ok {
 		delete(status.QpsStatus, t.Unix())
+		fmt.Println("expire", methodName, t.Unix(), len(status.QpsStatus))
 	}
 }
 

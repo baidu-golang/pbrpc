@@ -38,6 +38,7 @@ type info struct {
 func main() {
 
 	serverMeta := baidurpc.ServerMeta{}
+	serverMeta.QPSExpireInSecs = 600
 	rpcServer := baidurpc.NewTpcServer(&serverMeta)
 
 	echoService := new(EchoService)
@@ -74,7 +75,7 @@ func main() {
 
 	go selector.Serve()
 
-	rpcServer.StartServer(rpcServerListener)
+	err = rpcServer.StartServer(rpcServerListener)
 
 	if err != nil {
 		baidurpc.Error(err)

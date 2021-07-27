@@ -72,6 +72,7 @@ type ServerMeta struct {
 	Host                *string
 	Port                *int
 	IdleTimeoutSenconds *int
+	QPSExpireInSecs     int
 }
 
 type serviceType struct {
@@ -174,6 +175,10 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 		serverMeta.IdleTimeoutSenconds = &DEAFULT_IDLE_TIME_OUT_SECONDS
 	}
 
+	if serverMeta.QPSExpireInSecs <= 0 {
+		serverMeta.QPSExpireInSecs = Reqeust_QPS_Expire
+	}
+
 	tcpServer.serverMeta = serverMeta
 
 	// register status rpc method
@@ -197,7 +202,7 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 	Infof(LOG_SERVER_STARTED_INFO, l.Addr())
 
 	s.requestStatus = NewRPCRequestStatus(s.services) // inital request status monitor
-	s.requestStatus.expireAfterSecs = Reqeust_QPS_Expire
+	s.requestStatus.expireAfterSecs = int16(s.serverMeta.QPSExpireInSecs)
 	err := s.requestStatus.Start()
 	return err
 }
@@ -297,7 +302,7 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 		now2 := time.Now()
 		ec := &ErrorContext{}
 		// do moinitor
-		s.requestStatus.RequestIn(serviceId, now2)
+		s.requestStatus.RequestIn(serviceId, now2, 1)
 		messageRet, attachment, err := doServiceInvoke(ec, msg, r, service)
 		if ec.err != nil {
 			err = ec.err

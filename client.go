@@ -139,14 +139,14 @@ func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage
 	if errorCode > 0 {
 		errMsg := fmt.Sprintf(LOG_SERVER_REPONSE_ERROR,
 			errorCode, r.GetMeta().GetResponse().GetErrorText())
-		return nil, errors.New(errMsg)
+		return r, errors.New(errMsg)
 	}
 
 	response := r.GetData()
 	if response != nil {
 		err = proto.Unmarshal(response, responseMessage)
 		if err != nil {
-			return nil, err
+			return r, err
 		}
 	}
 
