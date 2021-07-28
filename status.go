@@ -185,11 +185,11 @@ func (r *RPCRequestStatus) RequestIn(methodName string, t time.Time, count int) 
 	return nil
 }
 
+// expire  remove qps data after time expire
 func (r *RPCRequestStatus) expire(methodName string, t time.Time) {
 	status, ok := r.Methods[methodName]
 	if ok {
 		delete(status.QpsStatus, t.Unix())
-		fmt.Println("expire", methodName, t.Unix(), len(status.QpsStatus))
 	}
 }
 
