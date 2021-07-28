@@ -12,6 +12,7 @@ features:
 - 压缩功能，支持GZip与Snappy[Done]
 - 集成内置HTTP管理功能[TODO]
 - Client支持Ha的负载均衡功能[Done]
+- 支持 Web管理能力以及内置能力[Done] [查看](https://github.com/jhunters/brpcweb)
   ​
 ### Installing 
 
@@ -223,4 +224,5 @@ $ go get github.com/baidu-golang/pbrpc
    ##### go get github.com/funny/link
 
 
-
+## License
+brpcweb is [Apache 2.0 licensed](./LICENSE).
