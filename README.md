@@ -225,4 +225,4 @@ $ go get github.com/baidu-golang/pbrpc
 
 
 ## License
-brpcweb is [Apache 2.0 licensed](./LICENSE).
+brpc is [Apache 2.0 licensed](./LICENSE).
