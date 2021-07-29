@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -83,11 +84,91 @@ type serviceType struct {
 }
 
 type methodType struct {
-	sync.Mutex // protects counters
-	method     reflect.Method
-	ArgType    reflect.Type
-	ReturnType reflect.Type
-	InArgValue interface{}
+	sync.Mutex         // protects counters
+	method             reflect.Method
+	ArgType            reflect.Type
+	ArgValue           reflect.Value
+	ReturnType         reflect.Type
+	ReturnValue        reflect.Value
+	InArgValue         interface{}
+	InPbFieldMetas     []*PbFieldMeta
+	RetrunPbFieldMetas []*PbFieldMeta
+}
+
+// ParsePbMeta parse pb tag string
+func (mt *methodType) ParsePbMeta() {
+	t := mt.ArgType
+	if t != nil {
+		mt.InPbFieldMetas = parsePbMetaFromType(t)
+	}
+
+	t = mt.ReturnType
+	if t != nil {
+		mt.RetrunPbFieldMetas = parsePbMetaFromType(t)
+	}
+}
+
+func parsePbMetaFromType(t reflect.Type) []*PbFieldMeta {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	size := t.NumField()
+	if size == 0 {
+		return nil
+	}
+
+	metas := make([]*PbFieldMeta, size)
+	for i := 0; i < size; i++ {
+		tagstruct := t.Field(i).Tag
+
+		// check if if map
+		pbtag := tagstruct.Get("protobuf")
+		meta := parseMetaString(pbtag)
+		if meta != nil {
+			metas[i] = meta
+			mapKey := tagstruct.Get("protobuf_key")
+			mapValue := tagstruct.Get("protobuf_val")
+			if len(mapKey) > 0 && len(mapValue) > 0 {
+				meta.SubFieldMeta = make([]*PbFieldMeta, 2)
+				meta.SubFieldMeta[0] = parseMetaString(mapKey)
+				meta.SubFieldMeta[1] = parseMetaString(mapValue)
+				meta.HasSub = true
+			}
+
+			subType := t.Field(i).Type
+			if matched, _ := isMessageType(subType); matched {
+				meta.SubFieldMeta = parsePbMetaFromType(subType)
+			}
+		}
+
+	}
+	return metas
+}
+
+func parseMetaString(meta string) *PbFieldMeta {
+	partials := strings.Split(meta, ",")
+	if len(partials) == 5 {
+		tag, _ := strconv.Atoi(partials[1])
+		meta := &PbFieldMeta{Type: partials[0], Tag: tag, Opt: partials[2], Version: partials[4]}
+		nameSplit := strings.Split(partials[3], "=")
+		if len(nameSplit) == 2 {
+			meta.Name = nameSplit[1]
+		}
+		return meta
+	} else {
+		Warningf("invalid proto tag '%s' size is %d", meta, len(partials))
+	}
+	return nil
+}
+
+type PbFieldMeta struct {
+	Name         string         `json:"name,omitempty"`
+	Tag          int            `json:"tag,omitempty"`
+	Type         string         `json:"type,omitempty"`
+	Opt          string         `json:"opt,omitempty"`     // opt or req
+	Version      string         `json:"version,omitempty"` // proto2 or proto3
+	SubFieldMeta []*PbFieldMeta `json:"sub_field_meta,omitempty"`
+	HasSub       bool           `json:"has_sub,omitempty"`
 }
 
 type attachement struct {
@@ -155,19 +236,26 @@ type ErrorContext struct {
 }
 
 type TcpServer struct {
-	serverMeta *ServerMeta
-	services   map[string]Service
-	started    bool
-	stop       bool
-	server     *link.Server
+	serverMeta   *ServerMeta
+	services     map[string]Service
+	servicesMeta map[string]*serviceMeta
+	started      bool
+	stop         bool
+	server       *link.Server
 
 	requestStatus *RPCRequestStatus
+}
+
+type serviceMeta struct {
+	InPbFieldMetas     []*PbFieldMeta
+	RetrunPbFieldMetas []*PbFieldMeta
 }
 
 func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	tcpServer := TcpServer{}
 
 	tcpServer.services = make(map[string]Service)
+	tcpServer.servicesMeta = make(map[string]*serviceMeta)
 	tcpServer.started = false
 	tcpServer.stop = false
 
@@ -527,6 +615,10 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			}
 		}
 		s.RegisterRpc(st.name, mName, callback, inType)
+
+		methodType.ParsePbMeta()
+		sid := GetServiceId(st.name, mName)
+		s.servicesMeta[sid] = &serviceMeta{methodType.InPbFieldMetas, methodType.RetrunPbFieldMetas}
 	}
 
 	// function := mtype.method.Func
@@ -542,6 +634,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 	methods := make(map[string]*methodType)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
+
 		mtype := method.Type
 		mname := method.Name
 		var inArgValue interface{}
@@ -557,7 +650,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 			}
 			continue
 		}
-		// and must be type of proto message
+		// and must be type of context.Context
 		contextType := mtype.In(1)
 		if !isContextType(contextType) {
 			if reportErr {
@@ -611,7 +704,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 
 // Is this type implements from proto.Message
 func isMessageType(t reflect.Type) (bool, interface{}) {
-	for t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 
@@ -627,20 +720,13 @@ func isMessageType(t reflect.Type) (bool, interface{}) {
 
 // Is this type implements from context.Context
 func isContextType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 
 	ok := t.Implements(reflect.TypeOf((*context.Context)(nil)).Elem())
 	return ok
 
-	// if strings.Compare(t.String(), reflect.TypeOf((*context.Context)(nil)).String()) == 0 {
-	// 	return true
-	// }
-
-	// argv := reflect.New(t)
-	// _, ok := argv.Interface().(context.Context)
-	// return ok
 }
 
 // RegisterRpc register Rpc direct

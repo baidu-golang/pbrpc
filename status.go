@@ -7,6 +7,7 @@ package baidurpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -27,8 +28,10 @@ type RPCStatus struct {
 }
 
 type RPCMethod struct {
-	Service string `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
-	Method  string `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Service        string `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
+	Method         string `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	InTypeMeta     string `protobuf:"bytes,3,opt,name=intype,proto3" json:"intype,omitempty"`
+	ReturnTypeMeta string `protobuf:"bytes,4,opt,name=returntype,proto3" json:"returntype,omitempty"`
 }
 
 type QpsData struct {
@@ -63,8 +66,21 @@ func (hsv *HttpStatusView) Status(c context.Context) (*RPCStatus, context.Contex
 	rpcServices := s.services
 	methods := make([]*RPCMethod, len(rpcServices))
 	var i int = 0
-	for _, service := range rpcServices {
+	for sname, service := range rpcServices {
 		m := &RPCMethod{Service: service.GetServiceName(), Method: service.GetMethodName()}
+		// query meta info
+		serviceMeta, ok := s.servicesMeta[sname]
+		if ok {
+			if serviceMeta.InPbFieldMetas != nil {
+				metaString, _ := json.Marshal(serviceMeta.InPbFieldMetas)
+				m.InTypeMeta = string(metaString)
+			}
+			if serviceMeta.RetrunPbFieldMetas != nil {
+				metaString, _ := json.Marshal(serviceMeta.RetrunPbFieldMetas)
+				m.ReturnTypeMeta = string(metaString)
+			}
+		}
+
 		methods[i] = m
 		i++
 	}
