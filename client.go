@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/jhunters/timewheel"
 )
 
 var ERR_NEED_INIT = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
@@ -28,12 +29,22 @@ var ERR_RESPONSE_NIL = errors.New("[client-003]No response result, mybe net work
 var LOG_SERVER_REPONSE_ERROR = "[client-002]Server response error. code=%d, msg='%s'"
 var LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 
+var (
+	timewheelInterval = 100 * time.Millisecond
+	timewheelSlot     = 300
+)
+
+const (
+	ST_READ_TIMEOUT = 62
+)
+
 /*
 RPC client invoke
-
 */
 type RpcClient struct {
 	Session Connection
+
+	tw *timewheel.TimeWheel
 }
 
 type URL struct {
@@ -63,6 +74,8 @@ type RpcInvocation struct {
 func NewRpcCient(connection Connection) (*RpcClient, error) {
 	c := RpcClient{}
 	c.Session = connection
+	c.tw, _ = timewheel.New(timewheelInterval, uint16(timewheelSlot))
+	c.tw.Start()
 	return &c, nil
 }
 
@@ -113,6 +126,49 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 	return rpcDataPackage, nil
 }
 
+func (c *RpcClient) Close() {
+	if c.tw != nil {
+		c.tw.Stop()
+	}
+}
+
+func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage, ch chan<- *RpcDataPackage) {
+	// create a task bind with key, data and  time out call back function.
+	t := &timewheel.Task{
+		Data: map[string]interface{}{"time": 105626, "age": 100}, // business data
+		TimeoutCallback: func(task timewheel.Task) { // call back function on time out
+			// process someting after time out happened.
+			errorcode := int32(ST_READ_TIMEOUT)
+			request.ErrorCode(errorcode)
+			errormsg := fmt.Sprintf("request time out of %v", task.Delay())
+			request.ErrorText(errormsg)
+			ch <- request
+		}}
+
+	// add task and return unique task id
+	taskid, _ := c.tw.AddTask(timeout, *t) // add delay task
+	defer func() {
+		c.tw.RemoveTask(taskid)
+		if e := recover(); e != nil {
+			Warningf("asyncRequest failed with error %v", e)
+		}
+	}()
+
+	rsp, err := c.Session.SendReceive(request)
+	if err != nil {
+		errorcode := int32(ST_ERROR)
+		request.ErrorCode(errorcode)
+		errormsg := err.Error()
+		request.ErrorText(errormsg)
+
+		ch <- request
+		return
+	}
+
+	ch <- rsp
+}
+
+// SendRpcRequest send rpc request to remote server
 func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage proto.Message) (*RpcDataPackage, error) {
 	if c.Session == nil {
 		return nil, ERR_NEED_INIT
@@ -127,8 +183,58 @@ func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage
 
 	rsp, err := c.Session.SendReceive(rpcDataPackage)
 	if err != nil {
+		errorcode := int32(ST_ERROR)
+		rpcDataPackage.ErrorCode(errorcode)
+		errormsg := err.Error()
+		rpcDataPackage.ErrorText(errormsg)
+		return rpcDataPackage, err
+	}
+
+	r := rsp
+	if r == nil {
+		return nil, ERR_RESPONSE_NIL //to ingore this nil value
+	}
+
+	errorCode := r.GetMeta().GetResponse().GetErrorCode()
+	if errorCode > 0 {
+		errMsg := fmt.Sprintf(LOG_SERVER_REPONSE_ERROR,
+			errorCode, r.GetMeta().GetResponse().GetErrorText())
+		return r, errors.New(errMsg)
+	}
+
+	response := r.GetData()
+	if response != nil {
+		err = proto.Unmarshal(response, responseMessage)
+		if err != nil {
+			return r, err
+		}
+	}
+
+	took := TimetookInSeconds(now)
+	Infof(LOG_CLIENT_TIMECOUST_INFO, *rpcInvocation.ServiceName, *rpcInvocation.MethodName, took)
+
+	return r, nil
+
+}
+
+// SendRpcRequest send rpc request to remote server
+func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocation *RpcInvocation, responseMessage proto.Message) (*RpcDataPackage, error) {
+	if c.Session == nil {
+		return nil, ERR_NEED_INIT
+	}
+
+	now := time.Now().UnixNano()
+
+	rpcDataPackage, err := rpcInvocation.GetRequestRpcDataPackage()
+	if err != nil {
 		return nil, err
 	}
+
+	ch := make(chan *RpcDataPackage)
+	go c.asyncRequest(timeout, rpcDataPackage, ch)
+	defer close(ch)
+	// wait for message
+	rsp := <-ch
 
 	r := rsp
 	if r == nil {
