@@ -56,20 +56,22 @@ const (
 )
 
 // error log info definition
-var ERR_SERVER_NOT_INIT = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer")
-var ERR_INVALID_PORT = errors.New("[server-002]port of server is nil or invalid")
-var ERR_RESPONSE_TO_CLIENT = errors.New("[server-003]response call session.Send to client failed")
-var LOG_SERVICE_NOTFOUND = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found"
-var LOG_SERVICE_DUPLICATE = "[server-004]Service name '%s' or method name '%s' already exist"
-var LOG_SERVER_STARTED_INFO = "[server-100]BaiduRpc server started on '%v'"
-var LOG_INTERNAL_ERROR = "[server-" + strconv.Itoa(ST_ERROR) + "] unknown internal error:'%s'"
-var LOG_TIMECOUST_INFO = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
-var LOG_TIMECOUST_INFO2 = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
+var (
+	ERR_SERVER_NOT_INIT     = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer")
+	ERR_INVALID_PORT        = errors.New("[server-002]port of server is nil or invalid")
+	ERR_RESPONSE_TO_CLIENT  = errors.New("[server-003]response call session.Send to client failed")
+	LOG_SERVICE_NOTFOUND    = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found"
+	LOG_SERVICE_DUPLICATE   = "[server-004]Service name '%s' or method name '%s' already exist"
+	LOG_SERVER_STARTED_INFO = "[server-100]BaiduRpc server started on '%v'"
+	LOG_INTERNAL_ERROR      = "[server-" + strconv.Itoa(ST_ERROR) + "] unknown internal error:'%s'"
+	LOG_TIMECOUST_INFO      = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
+	LOG_TIMECOUST_INFO2     = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
 
-var DEAFULT_IDLE_TIME_OUT_SECONDS = 10
+	DEAFULT_IDLE_TIME_OUT_SECONDS = 10
 
-var m proto.Message
-var MessageType = reflect.TypeOf(m)
+	m           proto.Message
+	MessageType = reflect.TypeOf(m)
+)
 
 type ServerMeta struct {
 	Host                *string
@@ -300,8 +302,8 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 
 	s.requestStatus = NewRPCRequestStatus(s.services) // inital request status monitor
 	s.requestStatus.expireAfterSecs = int16(s.serverMeta.QPSExpireInSecs)
-	err := s.requestStatus.Start()
-	return err
+	go s.requestStatus.Start()
+	return nil
 }
 
 func (s *TcpServer) Start() error {
@@ -475,6 +477,9 @@ func (s *TcpServer) Stop() error {
 	s.started = false
 	if s.server != nil {
 		s.server.Stop()
+	}
+	if s.requestStatus != nil {
+		s.requestStatus.Stop()
 	}
 	return nil
 }

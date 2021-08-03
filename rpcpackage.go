@@ -29,11 +29,12 @@ import (
 )
 
 // error log info definition
-var ERR_NO_SNAPPY = errors.New("[marshal-002]Snappy compress not support yet")
-var ERR_IGNORE_ERR = errors.New("[marshal-001]Ingore error")
-var ERR_META = errors.New("[marshal-003]Get nil value from Meta struct after marshal")
-
-var LOG_INVALID_BYTES = "[marshal-004]Invalid byte array. maybe a broken byte stream. Received '%b'"
+var (
+	ERR_NO_SNAPPY     = errors.New("[marshal-002]Snappy compress not support yet")
+	ERR_IGNORE_ERR    = errors.New("[marshal-001]Ingore error")
+	ERR_META          = errors.New("[marshal-003]Get nil value from Meta struct after marshal")
+	LOG_INVALID_BYTES = "[marshal-004]Invalid byte array. maybe a broken byte stream. Received '%b'"
+)
 
 /*
  Data package for baidu RPC.

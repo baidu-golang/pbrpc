@@ -24,14 +24,14 @@ import (
 	"github.com/jhunters/timewheel"
 )
 
-var ERR_NEED_INIT = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
-var ERR_RESPONSE_NIL = errors.New("[client-003]No response result, mybe net work break error")
-var LOG_SERVER_REPONSE_ERROR = "[client-002]Server response error. code=%d, msg='%s'"
-var LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
-
 var (
 	defaultTimewheelInterval = 10 * time.Millisecond
 	defaultTimewheelSlot     = 300
+
+	ERR_NEED_INIT             = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
+	ERR_RESPONSE_NIL          = errors.New("[client-003]No response result, mybe net work break error")
+	LOG_SERVER_REPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
+	LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 )
 
 const (
@@ -53,16 +53,19 @@ type URL struct {
 	Port *int
 }
 
+// SetHost set host name
 func (u *URL) SetHost(host *string) *URL {
 	u.Host = host
 	return u
 }
 
+// SetPort set port
 func (u *URL) SetPort(port *int) *URL {
 	u.Port = port
 	return u
 }
 
+// RpcInvocation define rpc invocation
 type RpcInvocation struct {
 	ServiceName  *string
 	MethodName   *string
@@ -86,6 +89,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	return &c, nil
 }
 
+// NewRpcInvocation create RpcInvocation with service name and method name
 func NewRpcInvocation(serviceName, methodName *string) *RpcInvocation {
 	r := new(RpcInvocation)
 	r.init(serviceName, methodName)
@@ -103,10 +107,12 @@ func (r *RpcInvocation) init(serviceName, methodName *string) {
 	r.ParameterIn = nil
 }
 
+// SetParameterIn
 func (r *RpcInvocation) SetParameterIn(parameterIn proto.Message) {
 	r.ParameterIn = &parameterIn
 }
 
+// GetRequestRpcDataPackage
 func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 
 	rpcDataPackage := new(RpcDataPackage)
@@ -133,12 +139,15 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 	return rpcDataPackage, nil
 }
 
+// define client methods
+// Close close client with time wheel
 func (c *RpcClient) Close() {
 	if c.tw != nil {
 		c.tw.Stop()
 	}
 }
 
+// asyncRequest
 func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage, ch chan<- *RpcDataPackage) {
 	// create a task bind with key, data and  time out call back function.
 	t := &timewheel.Task{

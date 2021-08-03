@@ -209,8 +209,8 @@ func (r *RPCRequestStatus) expire(methodName string, t time.Time) {
 	}
 }
 
-// Close
-func (r *RPCRequestStatus) Close() {
+// Stop
+func (r *RPCRequestStatus) Stop() {
 	if !r.started {
 		return
 	}

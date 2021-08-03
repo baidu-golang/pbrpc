@@ -21,13 +21,79 @@ import (
 
 	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
+const (
+	PORT_1 = 1031
+	PORT_2 = 1032
+	PORT_3 = 1033
+)
+
+// createRpcServer create rpc server by port and localhost
+func createRpcServer(port int) *baidurpc.TcpServer {
+	serverMeta := baidurpc.ServerMeta{}
+	serverMeta.Port = Int(port)
+	rpcServer := baidurpc.NewTpcServer(&serverMeta)
+	return rpcServer
+}
+
+// TestServerWithoutPublishMethods
+func TestServerWithoutPublishMethods(t *testing.T) {
+	Convey("TestServerWithoutPublishMethods", t, func() {
+
+		rpcServer := createRpcServer(PORT_2)
+		err := rpcServer.Start()
+		So(err, ShouldBeNil)
+		rpcServer.Stop()
+		So(err, ShouldBeNil)
+	})
+}
+
+// TestServerWithPublishMethods
+func TestServerWithPublishMethods(t *testing.T) {
+	Convey("TestServerWithoutPublishMethods", t, func() {
+
+		Convey("publish method with RegisterName", func() {
+			rpcServer := createRpcServer(PORT_2)
+
+			echoservice := new(baidurpc.EchoService)
+			rpcServer.RegisterName("EchoService", echoservice)
+
+			err := rpcServer.Start()
+			So(err, ShouldBeNil)
+			rpcServer.Stop()
+			So(err, ShouldBeNil)
+		})
+
+		Convey("publish method with RegisterNameWithMethodMapping", func() {
+			rpcServer := createRpcServer(PORT_2)
+
+			echoservice := new(baidurpc.EchoService)
+			methodMapping := map[string]string{
+				"Echo":                    "echo",
+				"EchoWithAttchement":      "echoWithAttchement",
+				"EchoWithCustomizedError": "echoWithCustomizedError",
+				"EchoWithoutContext":      "echoWithoutContext",
+			}
+			rpcServer.RegisterNameWithMethodMapping("EchoService", echoservice, methodMapping)
+
+			err := rpcServer.Start()
+			So(err, ShouldBeNil)
+			rpcServer.Stop()
+			So(err, ShouldBeNil)
+		})
+
+	})
+}
+
+// SimpleService
 type SimpleService struct {
 	serviceName string
 	methodName  string
 }
 
+// NewSimpleService create RPC service
 func NewSimpleService(serviceName, methodName string) *SimpleService {
 	ret := SimpleService{serviceName, methodName}
 	return &ret
@@ -72,46 +138,25 @@ func (ss *SimpleService) NewParameter() proto.Message {
 	return &ret
 }
 
-func TestRpcServerStart(t *testing.T) {
+// TestServerWithOldRegisterWay
+func TestServerWithOldRegisterWay(t *testing.T) {
 
-	// DoRpcServerStartAndBlock(t, 1032)
+	Convey("TestServerWithOldRegisterWay", t, func() {
+		rpcServer := createRpcServer(PORT_3)
+		So(rpcServer, ShouldNotBeNil)
+
+		service := NewSimpleService("OldService", "OldMethod")
+		rpcServer.Register(service)
+
+		err := rpcServer.Start()
+		So(err, ShouldBeNil)
+		rpcServer.Stop()
+		So(err, ShouldBeNil)
+	})
 
 }
 
-func DoRpcServerStartAndBlock(t *testing.T, port int) {
-
-	rpcServer := createRpcServer(port)
-
-	err := rpcServer.StartAndBlock()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func DoRpcServerStart(t *testing.T, port int) *baidurpc.TcpServer {
-
-	rpcServer := createRpcServer(port)
-
-	err := rpcServer.Start()
-	if err != nil && t != nil {
-		t.Error(err)
-	}
-	return rpcServer
-}
-
-func createRpcServer(port int) *baidurpc.TcpServer {
-	serverMeta := baidurpc.ServerMeta{}
-	serverMeta.Host = proto.String("localhost")
-	serverMeta.Port = Int(port)
-	rpcServer := baidurpc.NewTpcServer(&serverMeta)
-
-	ss := NewSimpleService("echoService", "echo")
-
-	rpcServer.Register(ss)
-
-	return rpcServer
-}
-
+// Int convert to pointer type of int
 func Int(v int) *int {
 	p := new(int)
 	*p = int(v)
