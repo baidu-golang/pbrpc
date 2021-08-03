@@ -1,4 +1,10 @@
 # baidurpc
+[![Go Report Card](https://goreportcard.com/badge/github.com/baidu-golang/pbrpc?style=flat-square)](https://goreportcard.com/report/github.com/baidu-golang/pbrpc)
+[![Build Status](https://github.com/baidu-golang/pbrpc/actions/workflows/go.yml/badge.svg)](https://github.com/baidu-golang/pbrpc/actions/workflows/go.yml)
+[![codecov](https://codecov.io/gh/baidu-golang/pbrpc/branch/main/graph/badge.svg?token=ATQhFv91YP)](https://codecov.io/gh/baidu-golang/pbrpc)
+[![Releases](https://img.shields.io/github/release/jhunters/ratelimiter/all.svg?style=flat-square)](https://github.com/jhunters/ratelimiter/releases)
+[![Go Reference](https://golang.com.cn/badge/github.com/baidu-golang/pbrpc.svg)](https://golang.com.cn/github.com/baidu-golang/pbrpc)
+[![LICENSE](https://img.shields.io/github/license/baidu-golang/pbrpc.svg?style=flat-square)](https://github.com/baidu-golang/pbrpc/blob/master/LICENSE)
 
 
 baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
