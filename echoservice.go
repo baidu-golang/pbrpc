@@ -28,6 +28,7 @@ package baidurpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -112,6 +113,23 @@ func (rpc *EchoService) EchoWithCustomizedError(c context.Context, in *EchoMessa
 func (rpc *EchoService) EchoWithoutContext(c context.Context, in *EchoMessage) *EchoMessage {
 	var ret = "hello "
 
+	if len(in.Name) == 0 {
+		ret = ret + "veryone"
+	} else {
+		ret = ret + in.Name
+	}
+
+	// return result
+	dm := EchoMessage{ret}
+
+	return &dm
+}
+
+// Echo  test publish method with return type has context argument
+func (rpc *EchoService) EchoSlowTest(c context.Context, in *EchoMessage) *EchoMessage {
+	var ret = "hello "
+
+	time.Sleep(2 * time.Second)
 	if len(in.Name) == 0 {
 		ret = ret + "veryone"
 	} else {

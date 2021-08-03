@@ -63,16 +63,19 @@ func TestPooledTcpConnectionClient(t *testing.T) {
 func testSendRpc(testName string, client *baidurpc.RpcClient, async bool) {
 	Convey(testName, func() {
 		Convey("Test send request EchoService!echo", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, async)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, async, false)
 		})
 		Convey("Test send request EchoService!echoWithAttchement", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithAttchement", true, false, async)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithAttchement", true, false, async, false)
 		})
 		Convey("Test send request EchoService!echoWithCustomizedError", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithCustomizedError", false, true, async)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithCustomizedError", false, true, async, false)
 		})
 		Convey("Test send request EchoService!echoWithoutContext", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithoutContext", false, false, async)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithoutContext", false, false, async, false)
+		})
+		Convey("Test send request EchoService!EchoSlowTest", func() {
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "EchoSlowTest", false, false, async, true)
 		})
 	})
 }
@@ -141,7 +144,7 @@ func createPooledConnectionClient() (baidurpc.Connection, *baidurpc.RpcClient, e
 }
 
 // doSimpleRPCInvokeWithSignatureWithConvey  send rpc request
-func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, serviceName, methodName string, withAttachement, withCustomErr, async bool) {
+func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, serviceName, methodName string, withAttachement, withCustomErr, async, timeout bool) {
 	Convey("Test Client send rpc  request", func() {
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
@@ -160,6 +163,10 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		var err error
 		if async {
 			response, err = rpcClient.SendRpcRequestWithTimeout(1*time.Second, rpcInvocation, &parameterOut)
+			if timeout {
+				So(err, ShouldNotBeNil)
+				return
+			}
 		} else {
 			response, err = rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
 		}

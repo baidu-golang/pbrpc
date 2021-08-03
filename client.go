@@ -42,10 +42,8 @@ const (
 RPC client invoke
 */
 type RpcClient struct {
-	Session           Connection
-	timewheelInterval time.Duration
-	timewheelSlot     int32
-	tw                *timewheel.TimeWheel
+	Session Connection
+	tw      *timewheel.TimeWheel
 }
 
 type URL struct {
