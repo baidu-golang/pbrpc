@@ -16,14 +16,11 @@
 package baidurpc_test
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"strings"
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 //手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
@@ -67,133 +64,114 @@ func initRpcDataPackage() *baidurpc.RpcDataPackage {
 	return &rpcDataPackage
 }
 
-func equalRpcDataPackage(r baidurpc.RpcDataPackage) error {
-
-	if !strings.EqualFold(sericeName, *r.Meta.Request.ServiceName) {
-		return errors.New(fmt.Sprintf("expect serice name '%s' but actual is '%s'", sericeName, *r.Meta.Request.ServiceName))
-	}
-
-	if !strings.EqualFold(methodName, *r.Meta.Request.MethodName) {
-		return errors.New(fmt.Sprintf("expect method name '%s' but actual is '%s'", methodName, *r.Meta.Request.MethodName))
-	}
-
-	if !strings.EqualFold(magicCode, r.GetMagicCode()) {
-		return errors.New(fmt.Sprintf("expect magic code '%s' but actual is '%s'", magicCode, r.GetMagicCode()))
-	}
-
-	if *r.Meta.Request.LogId != logId {
-		return errors.New(fmt.Sprintf("expect logId is '%d' but actual is '%d'", logId, *r.Meta.Request.LogId))
-	}
-
-	if *r.Meta.CorrelationId != correlationId {
-		return errors.New(fmt.Sprintf("expect CorrelationId is '%d' but actual is '%d'", correlationId, *r.Meta.CorrelationId))
-	}
-
-	if !bytes.EqualFold(data, r.Data) {
-		return errors.New(fmt.Sprintf("expect data is '%b' but actual is '%b'", data, r.Data))
-	}
-
-	if !bytes.EqualFold(attachment, r.Attachment) {
-		return errors.New(fmt.Sprintf("expect attachment is '%b' but actual is '%b'", attachment, r.Attachment))
-	}
-
+func equalRpcDataPackage(r baidurpc.RpcDataPackage, t *testing.T) error {
+	Convey("test RpcDataPackage", func() {
+		So(sericeName, ShouldEqual, *r.Meta.Request.ServiceName)
+		So(methodName, ShouldEqual, *r.Meta.Request.MethodName)
+		So(string(magicCode), ShouldEqual, string(r.GetMagicCode()))
+		So(*r.Meta.Request.LogId, ShouldEqual, logId)
+		So(*r.Meta.CorrelationId, ShouldEqual, correlationId)
+		So(len(data), ShouldEqual, len(r.Data))
+		So(len(attachment), ShouldEqual, len(r.Attachment))
+	})
 	return nil
 }
 
 func validateRpcDataPackage(t *testing.T, r2 baidurpc.RpcDataPackage) {
-
-	if !strings.EqualFold(magicCode, r2.GetMagicCode()) {
-		t.Errorf("expect magic code '%s' but actual is '%s'", magicCode, r2.GetMagicCode())
-	}
-
-	if !strings.EqualFold(sericeName, r2.GetMeta().GetRequest().GetServiceName()) {
-		t.Errorf("expect serice name '%s' but actual is '%s'", sericeName, r2.GetMeta().GetRequest().GetServiceName())
-	}
-
-	if !strings.EqualFold(methodName, r2.GetMeta().GetRequest().GetMethodName()) {
-		t.Errorf("expect serice name '%s' but actual is '%s'", sericeName, r2.GetMeta().GetRequest().GetMethodName())
-	}
+	Convey("validateRpcDataPackage", func() {
+		So(string(magicCode), ShouldEqual, string(r2.GetMagicCode()))
+		So(sericeName, ShouldEqual, r2.GetMeta().GetRequest().GetServiceName())
+		So(methodName, ShouldEqual, r2.GetMeta().GetRequest().GetMethodName())
+	})
 
 }
 
+// TestWriteReaderWithMockData
 func TestWriteReaderWithMockData(t *testing.T) {
 
-	rpcDataPackage := initRpcDataPackage()
+	Convey("TestWriteReaderWithMockData", t, func() {
+		rpcDataPackage := initRpcDataPackage()
 
-	b, err := rpcDataPackage.Write()
-	if err != nil {
-		t.Error(err.Error())
-	}
+		b, err := rpcDataPackage.Write()
+		if err != nil {
+			t.Error(err.Error())
+		}
 
-	r2 := baidurpc.RpcDataPackage{}
+		r2 := baidurpc.RpcDataPackage{}
 
-	err = r2.Read(b)
-	if err != nil {
-		t.Error(err.Error())
-	}
+		err = r2.Read(b)
+		if err != nil {
+			t.Error(err.Error())
+		}
 
-	validateRpcDataPackage(t, r2)
+		validateRpcDataPackage(t, r2)
+	})
 
 }
 
+// WriteReaderWithRealData
 func WriteReaderWithRealData(rpcDataPackage *baidurpc.RpcDataPackage,
 	compressType int32, t *testing.T) {
-	dataMessage := DataMessage{}
-	name := "hello, xiemalin. this is repeated string aaaaaaaaaaaaaaaaaaaaaa"
-	dataMessage.Name = &name
 
-	data, err := proto.Marshal(&dataMessage)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	rpcDataPackage.SetData(data)
+	Convey("Test with real data", func() {
+		dataMessage := DataMessage{}
+		name := "hello, xiemalin. this is repeated string aaaaaaaaaaaaaaaaaaaaaa"
+		dataMessage.Name = &name
 
-	b, err := rpcDataPackage.Write()
-	if err != nil {
-		t.Error(err.Error())
-	}
+		data, err := proto.Marshal(&dataMessage)
+		So(err, ShouldBeNil)
+		rpcDataPackage.SetData(data)
 
-	r2 := baidurpc.RpcDataPackage{}
-	r2.CompressType(compressType)
+		b, err := rpcDataPackage.Write()
+		So(err, ShouldBeNil)
 
-	err = r2.Read(b)
-	if err != nil {
-		t.Error(err.Error())
-	}
+		r2 := baidurpc.RpcDataPackage{}
+		r2.CompressType(compressType)
 
-	validateRpcDataPackage(t, r2)
+		err = r2.Read(b)
+		So(err, ShouldBeNil)
 
-	newData := r2.GetData()
-	dataMessage2 := DataMessage{}
-	proto.Unmarshal(newData, &dataMessage2)
+		validateRpcDataPackage(t, r2)
 
-	if !strings.EqualFold(name, *dataMessage2.Name) {
-		t.Errorf("expect name '%s' but actual is '%s'", name, *dataMessage2.Name)
-	}
+		newData := r2.GetData()
+		dataMessage2 := DataMessage{}
+		proto.Unmarshal(newData, &dataMessage2)
+
+		So(name, ShouldEqual, *dataMessage2.Name)
+	})
+
 }
 
+// TestWriteReaderWithRealData
 func TestWriteReaderWithRealData(t *testing.T) {
 
-	rpcDataPackage := initRpcDataPackage()
-	WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_NO, t)
+	Convey("TestWriteReaderWithRealData", t, func() {
+		rpcDataPackage := initRpcDataPackage()
+		WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_NO, t)
+	})
+
 }
 
+// TestWriteReaderWithGZIP
 func TestWriteReaderWithGZIP(t *testing.T) {
 
-	rpcDataPackage := initRpcDataPackage()
-
-	rpcDataPackage.CompressType(baidurpc.COMPRESS_GZIP)
-
-	WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_GZIP, t)
+	Convey("TestWriteReaderWithGZIP", t, func() {
+		rpcDataPackage := initRpcDataPackage()
+		rpcDataPackage.CompressType(baidurpc.COMPRESS_GZIP)
+		WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_GZIP, t)
+	})
 
 }
 
+// TestWriteReaderWithSNAPPY
 func TestWriteReaderWithSNAPPY(t *testing.T) {
 
-	rpcDataPackage := initRpcDataPackage()
+	Convey("TestWriteReaderWithSNAPPY", t, func() {
+		rpcDataPackage := initRpcDataPackage()
 
-	rpcDataPackage.CompressType(baidurpc.COMPRESS_SNAPPY)
+		rpcDataPackage.CompressType(baidurpc.COMPRESS_SNAPPY)
 
-	WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_SNAPPY, t)
+		WriteReaderWithRealData(rpcDataPackage, baidurpc.COMPRESS_SNAPPY, t)
+	})
 
 }

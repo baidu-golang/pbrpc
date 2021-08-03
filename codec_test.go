@@ -1,3 +1,8 @@
+/*
+ * @Author: Malin Xie
+ * @Description:
+ * @Date: 2021-07-24 16:54:14
+ */
 // Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
@@ -17,58 +22,54 @@ package baidurpc_test
 
 import (
 	"bytes"
-	"fmt"
-	"strings"
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
+// TestCodecSend
 func TestCodecSend(t *testing.T) {
+	Convey("TestCodecSend", t, func() {
+		protocol := &baidurpc.RpcDataPackageProtocol{}
 
-	protocol := &baidurpc.RpcDataPackageProtocol{}
+		buf := new(bytes.Buffer)
 
-	buf := new(bytes.Buffer)
+		rpcDataPackagecodec, _ := protocol.NewCodec(buf)
 
-	rpcDataPackagecodec, _ := protocol.NewCodec(buf)
+		rpcDataPackage := initRpcDataPackage()
 
-	rpcDataPackage := initRpcDataPackage()
+		rpcDataPackagecodec.Send(rpcDataPackage)
 
-	rpcDataPackagecodec.Send(rpcDataPackage)
+		r2 := baidurpc.RpcDataPackage{}
+		err := r2.ReadIO(buf)
+		So(err, ShouldBeNil)
 
-	r2 := baidurpc.RpcDataPackage{}
-	err := r2.ReadIO(buf)
+		err = equalRpcDataPackage(r2, t)
+		So(err, ShouldBeNil)
+	})
 
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = equalRpcDataPackage(r2)
-	if err != nil {
-		t.Error(err)
-	}
 }
 
+// TestCodecReceive
 func TestCodecReceive(t *testing.T) {
 
-	protocol := &baidurpc.RpcDataPackageProtocol{}
+	Convey("TestCodecReceive", t, func() {
+		protocol := &baidurpc.RpcDataPackageProtocol{}
 
-	buf := new(bytes.Buffer)
-	// write prepare value to buf
-	rpcDataPackage := initRpcDataPackage()
-	bytes, err := rpcDataPackage.Write()
-	if err != nil {
-		t.Error(err)
-	}
+		buf := new(bytes.Buffer)
+		// write prepare value to buf
+		rpcDataPackage := initRpcDataPackage()
+		bytes, err := rpcDataPackage.Write()
+		So(err, ShouldBeNil)
 
-	buf.Write(bytes)
-	rpcDataPackagecodec, _ := protocol.NewCodec(buf)
+		buf.Write(bytes)
+		rpcDataPackagecodec, _ := protocol.NewCodec(buf)
 
-	rsp, err := rpcDataPackagecodec.Receive()
-
-	mc := rsp.(*baidurpc.RpcDataPackage).GetMagicCode()
-	if !strings.EqualFold(magicCode, mc) {
-		t.Error(fmt.Sprintf("expect magic code is '%s' but actual is '%s'", magicCode, mc))
-	}
+		rsp, err := rpcDataPackagecodec.Receive()
+		So(err, ShouldBeNil)
+		mc := rsp.(*baidurpc.RpcDataPackage).GetMagicCode()
+		So(string(magicCode), ShouldEqual, string(mc))
+	})
 
 }

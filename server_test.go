@@ -74,10 +74,7 @@ func (ss *SimpleService) NewParameter() proto.Message {
 
 func TestRpcServerStart(t *testing.T) {
 
-	if true {
-		return
-	}
-	DoRpcServerStartAndBlock(t, 1032)
+	// DoRpcServerStartAndBlock(t, 1032)
 
 }
 

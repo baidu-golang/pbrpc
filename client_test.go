@@ -15,167 +15,154 @@
 // limitations under the License.
 package baidurpc_test
 
-import (
-	"errors"
-	"fmt"
-	"log"
+// BenchmarkTestLocalConnectionPerformance bench mark test
+// func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
+// 	host := "localhost"
+// 	port := 1039
 
-	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
+// 	rpcServer := DoRpcServerStart(nil, port)
+// 	defer rpcServer.Stop()
 
-	"strings"
-	"testing"
-	"time"
-)
+// 	url := baidurpc.URL{}
+// 	url.SetHost(&host).SetPort(&port)
 
-//bench mark test
+// 	timeout := time.Second * 5
+// 	// create client by simple connection
+// 	connection, err := baidurpc.NewTCPConnection(url, &timeout)
+// 	if err != nil {
+// 		return
+// 	}
+// 	defer connection.Close()
+// 	log.Println(b.N)
+// 	for i := 0; i < b.N; i++ {
+// 		doSimpleRPCInvoke(nil, connection)
+// 	}
 
-func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
-	host := "localhost"
-	port := 1039
+// }
 
-	rpcServer := DoRpcServerStart(nil, port)
-	defer rpcServer.Stop()
+// // TestSendRpcRequestSucc173300ess bench mark test end
+// func TestSendRpcRequestSucc173300ess(t *testing.T) {
 
-	url := baidurpc.URL{}
-	url.SetHost(&host).SetPort(&port)
+// 	host := "localhost"
+// 	port := 1031
 
-	timeout := time.Second * 5
-	// create client by simple connection
-	connection, err := baidurpc.NewTCPConnection(url, &timeout)
-	if err != nil {
-		return
-	}
-	defer connection.Close()
-	log.Println(b.N)
-	for i := 0; i < b.N; i++ {
-		doSimpleRPCInvoke(nil, connection)
-	}
+// 	rpcServer := DoRpcServerStart(t, port)
+// 	defer rpcServer.Stop()
 
-}
+// 	url := baidurpc.URL{}
+// 	url.SetHost(&host).SetPort(&port)
 
-//bench mark test end
+// 	timeout := time.Second * 5
+// 	// create client by simple connection
+// 	connection, err := baidurpc.NewTCPConnection(url, &timeout)
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	defer connection.Close()
+// 	doSimpleRPCInvoke(t, connection)
 
-func TestSendRpcRequestSucc173300ess(t *testing.T) {
+// 	// create client by connection pool
+// 	connectionPool, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	defer connectionPool.Close()
+// 	doSimpleRPCInvoke(t, connectionPool)
 
-	host := "localhost"
-	port := 1031
+// }
 
-	rpcServer := DoRpcServerStart(t, port)
-	defer rpcServer.Stop()
+// // TestSendRpcRequestNoServiceNameExist
+// func TestSendRpcRequestNoServiceNameExist(t *testing.T) {
 
-	url := baidurpc.URL{}
-	url.SetHost(&host).SetPort(&port)
+// 	host := "localhost"
+// 	port := 1035
 
-	timeout := time.Second * 5
-	// create client by simple connection
-	connection, err := baidurpc.NewTCPConnection(url, &timeout)
-	if err != nil {
-		t.Error(err)
-	}
-	defer connection.Close()
-	doSimpleRPCInvoke(t, connection)
+// 	rpcServer := DoRpcServerStart(t, port)
+// 	defer rpcServer.Stop()
 
-	// create client by connection pool
-	connectionPool, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
-	if err != nil {
-		t.Error(err)
-	}
-	defer connectionPool.Close()
-	doSimpleRPCInvoke(t, connectionPool)
+// 	url := baidurpc.URL{}
+// 	url.SetHost(&host).SetPort(&port)
 
-}
+// 	timeout := time.Second * 5
+// 	// create client by simple connection
+// 	connection, err := baidurpc.NewTCPConnection(url, &timeout)
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	defer connection.Close()
+// 	err = doSimpleRPCInvokeWithSignature(connection, "no", "no")
+// 	if err == nil {
+// 		t.Error("Service name not exist should return error.")
+// 	}
 
-func TestSendRpcRequestNoServiceNameExist(t *testing.T) {
+// }
 
-	host := "localhost"
-	port := 1035
+// // TestSendRpcRequestReconnectionSuccess
+// func TestSendRpcRequestReconnectionSuccess(t *testing.T) {
 
-	rpcServer := DoRpcServerStart(t, port)
-	defer rpcServer.Stop()
+// 	host := "localhost"
+// 	port := 1030
 
-	url := baidurpc.URL{}
-	url.SetHost(&host).SetPort(&port)
+// 	rpcServer := DoRpcServerStart(t, port)
 
-	timeout := time.Second * 5
-	// create client by simple connection
-	connection, err := baidurpc.NewTCPConnection(url, &timeout)
-	if err != nil {
-		t.Error(err)
-	}
-	defer connection.Close()
-	err = doSimpleRPCInvokeWithSignature(connection, "no", "no")
-	if err == nil {
-		t.Error("Service name not exist should return error.")
-	}
+// 	url := baidurpc.URL{}
+// 	url.SetHost(&host).SetPort(&port)
+// 	timeout := time.Second * 5
+// 	// create client by connection pool
+// 	connectionPool, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	defer connectionPool.Close()
+// 	doSimpleRPCInvoke(t, connectionPool)
 
-}
+// 	//close server
+// 	rpcServer.Stop()
 
-func TestSendRpcRequestReconnectionSuccess(t *testing.T) {
+// 	DoRpcServerStart(t, port)
+// 	doSimpleRPCInvoke(t, connectionPool)
+// }
 
-	host := "localhost"
-	port := 1030
+// func doSimpleRPCInvoke(t *testing.T, connection baidurpc.Connection) {
 
-	rpcServer := DoRpcServerStart(t, port)
+// 	serviceName := "echoService"
+// 	methodName := "echo"
 
-	url := baidurpc.URL{}
-	url.SetHost(&host).SetPort(&port)
-	timeout := time.Second * 5
-	// create client by connection pool
-	connectionPool, err := baidurpc.NewDefaultTCPConnectionPool(url, &timeout)
-	if err != nil {
-		t.Error(err)
-	}
-	defer connectionPool.Close()
-	doSimpleRPCInvoke(t, connectionPool)
+// 	doSimpleRPCInvokeWithSignature(connection, serviceName, methodName)
+// }
 
-	//close server
-	rpcServer.Stop()
+// func doSimpleRPCInvokeWithSignature(connection baidurpc.Connection, serviceName, methodName string) error {
 
-	DoRpcServerStart(t, port)
-	doSimpleRPCInvoke(t, connectionPool)
-}
+// 	// create client
+// 	rpcClient, err := baidurpc.NewRpcCient(connection)
+// 	if err != nil {
+// 		return err
+// 	}
 
-func doSimpleRPCInvoke(t *testing.T, connection baidurpc.Connection) {
+// 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
-	serviceName := "echoService"
-	methodName := "echo"
+// 	message := "say hello from xiemalin中文测试"
+// 	dm := DataMessage{&message}
 
-	doSimpleRPCInvokeWithSignature(connection, serviceName, methodName)
-}
+// 	rpcInvocation.SetParameterIn(&dm)
+// 	rpcInvocation.LogId = proto.Int64(1)
 
-func doSimpleRPCInvokeWithSignature(connection baidurpc.Connection, serviceName, methodName string) error {
+// 	parameterOut := DataMessage{}
 
-	// create client
-	rpcClient, err := baidurpc.NewRpcCient(connection)
-	if err != nil {
-		return err
-	}
+// 	response, err := rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+// 	if response == nil {
+// 		log.Println("Reponse is nil")
+// 		return nil
+// 	}
 
-	message := "say hello from xiemalin中文测试"
-	dm := DataMessage{&message}
+// 	expect := "hello " + message
+// 	if !strings.EqualFold(expect, *parameterOut.Name) {
+// 		return errors.New(fmt.Sprintf("expect message is '%s' but actual is '%s'", message, *parameterOut.Name))
+// 	}
+// 	return nil
 
-	rpcInvocation.SetParameterIn(&dm)
-	rpcInvocation.LogId = proto.Int64(1)
-
-	parameterOut := DataMessage{}
-
-	response, err := rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
-	if err != nil {
-		return err
-	}
-
-	if response == nil {
-		log.Println("Reponse is nil")
-		return nil
-	}
-
-	expect := "hello " + message
-	if !strings.EqualFold(expect, *parameterOut.Name) {
-		return errors.New(fmt.Sprintf("expect message is '%s' but actual is '%s'", message, *parameterOut.Name))
-	}
-	return nil
-
-}
+// }

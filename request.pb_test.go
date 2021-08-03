@@ -1,3 +1,8 @@
+/*
+ * @Author: Malin Xie
+ * @Description:
+ * @Date: 2021-07-24 16:54:14
+ */
 // Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
@@ -16,50 +21,39 @@
 package baidurpc_test
 
 import (
+	"testing"
+
 	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
-	"strings"
-	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
+// TestPropertySetAndGet
 func TestPropertySetAndGet(t *testing.T) {
-    
-    if true {return}
+	Convey("TestPropertySetAndGet", t, func() {
+		var serviceName string = "ThisAServiceName"
+		var methodName string = "ThisAMethodName"
+		var logId int64 = 1
 
-	var serviceName string = "ThisAServiceName"
-	var methodName string = "ThisAMethodName"
-	var logId int64 = 1
+		request := baidurpc.Request{
+			ServiceName: &serviceName,
+			MethodName:  &methodName,
+			LogId:       &logId,
+		}
 
-	request := baidurpc.Request{
-		ServiceName: &serviceName,
-		MethodName:  &methodName,
-		LogId:       &logId,
-	}
+		So(serviceName, ShouldEqual, request.GetServiceName())
+		So(methodName, ShouldEqual, request.GetMethodName())
+		So(logId, ShouldEqual, request.GetLogId())
 
-	if !strings.EqualFold(serviceName, request.GetServiceName()) {
-		t.Errorf("set ServiceName value is '%s', but get value is '%s' ", serviceName, request.GetServiceName())
-	}
+		data, err := proto.Marshal(&request)
+		So(err, ShouldBeNil)
 
-	if !strings.EqualFold(methodName, request.GetMethodName()) {
-		t.Errorf("set methodName value is '%s', but get value is '%s' ", methodName, request.GetMethodName())
-	}
+		request2 := new(baidurpc.Request)
+		err = proto.Unmarshal(data, request2)
+		So(err, ShouldBeNil)
 
-	if logId != request.GetLogId() {
-		t.Errorf("set logId value is '%d', but get value is '%d' ", logId, request.GetLogId())
-	}
+		So(request.GetServiceName(), ShouldEqual, request2.GetServiceName())
+	})
 
-	data, err := proto.Marshal(&request)
-	if err != nil {
-		t.Errorf("marshaling error: %s", err.Error())
-	}
-	
-	request2 := new(baidurpc.Request)
-	err = proto.Unmarshal(data, request2)
-	if (err != nil) {
-		t.Errorf("marshaling error: %s", err.Error())
-	}
-	
-	if !strings.EqualFold(request.GetServiceName(), request2.GetServiceName()) {
-		t.Errorf("set ServiceName value is '%s', but get value is '%s' ", request.GetServiceName(), request2.GetServiceName())
-	}
 }

@@ -9,4 +9,5 @@ require (
 	github.com/golang/snappy v0.0.3
 	github.com/jhunters/timewheel v0.0.0-20210716021958-85ae0cfe1074
 	github.com/jolestar/go-commons-pool/v2 v2.1.1
+	github.com/smartystreets/goconvey v1.6.4
 )

@@ -21,29 +21,31 @@
 package baidurpc_test
 
 import (
-	"bytes"
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
+// TestRpcDataWriteReader test head read and write
 func TestRpcDataWriteReader(t *testing.T) {
 
-	h := baidurpc.Header{}
-	h.SetMagicCode([]byte("PRPB"))
-	h.SetMessageSize(12300)
-	h.SetMetaSize(59487)
+	Convey("TestRpcDataWriteReader", t, func() {
 
-	bs, _ := h.Write()
+		h := baidurpc.Header{}
+		h.SetMagicCode([]byte("PRPB"))
+		h.SetMessageSize(12300)
+		h.SetMetaSize(59487)
 
-	if len(bs) != baidurpc.SIZE {
-		t.Errorf("current head size is '%d', should be '%d'", len(bs), baidurpc.SIZE)
-	}
+		bs, _ := h.Write()
+		So(len(bs), ShouldEqual, baidurpc.SIZE)
 
-	h2 := baidurpc.Header{}
-	h2.Read(bs)
-	if !bytes.Equal(h.GetMagicCode(), h2.GetMagicCode()) {
-		t.Errorf("magic code is not same. expect '%b' actual is '%b'", h.GetMagicCode(), h2.GetMagicCode())
-	}
+		h2 := baidurpc.Header{}
+		h2.Read(bs)
+		So(string(h.GetMagicCode()), ShouldEqual, string(h2.GetMagicCode()))
+		So(h.GetMessageSize(), ShouldEqual, 12300)
+		So(h.GetMetaSize(), ShouldEqual, 59487)
+	})
 
 }
