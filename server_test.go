@@ -38,6 +38,28 @@ func createRpcServer(port int) *baidurpc.TcpServer {
 	return rpcServer
 }
 
+type CustomAuthService struct {
+}
+
+// Authenticate
+func (as *CustomAuthService) Authenticate(service, name string, authToken []byte) bool {
+	return true
+}
+
+// TestServerWithAuthenticate
+func TestServerWithAuthenticate(t *testing.T) {
+	Convey("TestServerWithoutPublishMethods", t, func() {
+
+		rpcServer := createRpcServer(PORT_2)
+		authservice := new(CustomAuthService)
+		rpcServer.SetAuthService(authservice)
+		err := rpcServer.Start()
+		So(err, ShouldBeNil)
+		rpcServer.Stop()
+		So(err, ShouldBeNil)
+	})
+}
+
 // TestServerWithoutPublishMethods
 func TestServerWithoutPublishMethods(t *testing.T) {
 	Convey("TestServerWithoutPublishMethods", t, func() {

@@ -44,6 +44,9 @@ const (
 	/** 未知异常. */
 	ST_ERROR int = 2001
 
+	/** 验证错误. */
+	ST_AUTH_ERROR = 1004
+
 	//  log id key
 	KT_LOGID = "_logid_"
 
@@ -60,6 +63,7 @@ var (
 	ERR_SERVER_NOT_INIT     = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer")
 	ERR_INVALID_PORT        = errors.New("[server-002]port of server is nil or invalid")
 	ERR_RESPONSE_TO_CLIENT  = errors.New("[server-003]response call session.Send to client failed")
+	errAuth                 = errors.New("authenticate failed, pls use correct authenticate value")
 	LOG_SERVICE_NOTFOUND    = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found"
 	LOG_SERVICE_DUPLICATE   = "[server-004]Service name '%s' or method name '%s' already exist"
 	LOG_SERVER_STARTED_INFO = "[server-100]BaiduRpc server started on '%v'"
@@ -190,6 +194,7 @@ var errorKey struct{}
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
 
+// Service rpc service
 type Service interface {
 	/*
 	   RPC service call back method.
@@ -205,6 +210,12 @@ type Service interface {
 	GetServiceName() string
 	GetMethodName() string
 	NewParameter() proto.Message
+}
+
+// AuthService authenticate service
+type AuthService interface {
+	// Authenticate do auth action if return true auth success
+	Authenticate(service, name string, authToken []byte) bool
 }
 
 // DefaultService default implemention for Service interface
@@ -255,6 +266,8 @@ type TcpServer struct {
 	server       *link.Server
 
 	requestStatus *RPCRequestStatus
+
+	authService AuthService
 }
 
 type serviceMeta struct {
@@ -351,6 +364,11 @@ func (s *TcpServer) StartAndBlock() error {
 	return nil
 }
 
+// SetAuthService set authenticate service
+func (s *TcpServer) SetAuthService(authservice AuthService) {
+	s.authService = authservice
+}
+
 func (s *TcpServer) handleResponse(session *link.Session) {
 	// after function return must close session
 	defer session.Close()
@@ -376,6 +394,18 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 
 		serviceName := r.GetMeta().GetRequest().GetServiceName()
 		methodName := r.GetMeta().GetRequest().GetMethodName()
+
+		if s.authService != nil {
+			authOk := s.authService.Authenticate(serviceName, methodName, r.Meta.AuthenticationData)
+			if !authOk {
+				wrapResponse(r, ST_AUTH_ERROR, errAuth.Error())
+				err = session.Send(r)
+				if err != nil {
+					Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+				}
+				return
+			}
+		}
 
 		serviceId := GetServiceId(serviceName, methodName)
 

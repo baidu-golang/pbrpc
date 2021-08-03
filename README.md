@@ -178,6 +178,22 @@ $ go get github.com/baidu-golang/pbrpc
 
 ```
 
+### 设置验证
+```go
+    // 调用RPC
+	serviceName := "echoService"
+	methodName := "echo"
+	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+	// set auth token
+	rpcInvocation.Attachment = []byte("This is attachment data")
+	
+    // 调用时，设置超时功能
+	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
+	// 如果发生超时， 返回的错误码为 62
+
+```
+
+
 ### 开发Ha RPC客户端
 
 ```go
