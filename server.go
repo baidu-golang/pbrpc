@@ -262,6 +262,7 @@ type serviceMeta struct {
 	RetrunPbFieldMetas []*PbFieldMeta
 }
 
+// NewTpcServer
 func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	tcpServer := TcpServer{}
 
@@ -288,6 +289,7 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	return &tcpServer
 }
 
+// StartServer start server with net.Listener
 func (s *TcpServer) StartServer(l net.Listener) error {
 
 	protocol := &RpcDataPackageProtocol{}

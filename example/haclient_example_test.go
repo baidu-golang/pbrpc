@@ -16,56 +16,62 @@
 /*
  * @Author: Malin Xie
  * @Description:
- * @Date: 2021-08-03 15:52:08
+ * @Date: 2021-08-03 19:12:14
  */
-package baidurpc_test
+package example
 
 import (
-	"testing"
+	"fmt"
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 )
 
-// BenchmarkTestLocalConnectionPerformance bench mark test
-func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
+// ExampleTcpClient
+func ExampleHaTcpClient() {
+
 	host := "localhost"
-	port := PORT_1
-
-	tcpServer := startRpcServer()
-	defer tcpServer.Stop()
-
-	conn, client, _ := createClient()
-	defer client.Close()
-	defer conn.Close()
-
-	url := baidurpc.URL{}
-	url.SetHost(&host).SetPort(&port)
-
 	timeout := time.Second * 5
-	// create client by simple connection
-	connection, err := baidurpc.NewTCPConnection(url, &timeout)
+	errPort := 100
+	port := 1031
+	urls := []baidurpc.URL{{Host: &host, Port: &errPort}, {Host: &host, Port: &port}}
+
+	connections, err := baidurpc.NewBatchTCPConnection(urls, timeout)
 	if err != nil {
 		return
 	}
-	defer connection.Close()
-	for i := 0; i < b.N; i++ {
-		doSimpleRPCInvokeWithSignature(client, "EchoService", "echo")
-	}
-}
+	defer baidurpc.CloseBatchConnection(connections)
 
-// doSimpleRPCInvokeWithSignature  send rpc request
-func doSimpleRPCInvokeWithSignature(rpcClient *baidurpc.RpcClient, serviceName, methodName string) {
+	haClient, err := baidurpc.NewHaRpcCient(connections)
+	if err != nil {
+		return
+	}
+	defer haClient.Close()
+
+	serviceName := "echoService"
+	methodName := "echo"
 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
-	name := "马林"
-	dm := baidurpc.EchoMessage{name}
+	message := "say hello from xiemalin中文测试"
+	dm := DataMessage{&message}
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)
+	rpcInvocation.Attachment = []byte("hello world")
 
-	parameterOut := baidurpc.EchoMessage{}
+	parameterOut := DataMessage{}
 
-	rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
+	response, err := haClient.SendRpcRequest(rpcInvocation, &parameterOut)
+	if err != nil {
+		return
+	}
+
+	if response == nil {
+		fmt.Println("Reponse is nil")
+		return
+	}
+
+	fmt.Println("attachement", response.Attachment)
+
 }
