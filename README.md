@@ -156,6 +156,22 @@ $ go get github.com/baidu-golang/pbrpc
 	}
 ```
 
+### 设置调用超时
+
+```go
+	// baidurpc的超时控制功能使用了 时间轮 timewheel功能 https://github.com/jhunters/timewheel
+	// 可以在初始化Client时设置
+	timewheelInterval := 1 * time.Second
+	var timewheelSlot uint16 = 300 
+	rpcClient, err := baidurpc.NewRpcCientWithTimeWheelSetting(connection, timewheelInterval, timewheelSlot)
+
+	
+    // 调用时，设置超时功能
+	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
+	// 如果发生超时， 返回的错误码为 62
+
+```
+
 ### 开发Ha RPC客户端
 
 ```go
