@@ -24,7 +24,7 @@ jobs:
     - name: Test
       run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
 
-    - name: CoverageUpload
+    - name: CoverageUploadAction
       run:  bash <(curl -s https://codecov.io/bash)
 
 
