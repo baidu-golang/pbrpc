@@ -30,8 +30,8 @@ var LOG_SERVER_REPONSE_ERROR = "[client-002]Server response error. code=%d, msg=
 var LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 
 var (
-	timewheelInterval = 100 * time.Millisecond
-	timewheelSlot     = 300
+	defaultTimewheelInterval = 10 * time.Millisecond
+	defaultTimewheelSlot     = 300
 )
 
 const (
@@ -42,9 +42,10 @@ const (
 RPC client invoke
 */
 type RpcClient struct {
-	Session Connection
-
-	tw *timewheel.TimeWheel
+	Session           Connection
+	timewheelInterval time.Duration
+	timewheelSlot     int32
+	tw                *timewheel.TimeWheel
 }
 
 type URL struct {
@@ -71,10 +72,16 @@ type RpcInvocation struct {
 	CompressType *int32
 }
 
+// NewRpcCient new rpc client
 func NewRpcCient(connection Connection) (*RpcClient, error) {
+	return NewRpcCientWithTimeWheelSetting(connection, defaultTimewheelInterval, uint16(defaultTimewheelSlot))
+}
+
+// NewRpcCientWithTimeWheelSetting new rpc client with set timewheel settings
+func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval time.Duration, timewheelSlot uint16) (*RpcClient, error) {
 	c := RpcClient{}
 	c.Session = connection
-	c.tw, _ = timewheel.New(timewheelInterval, uint16(timewheelSlot))
+	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
 	return &c, nil
 }
@@ -135,7 +142,7 @@ func (c *RpcClient) Close() {
 func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage, ch chan<- *RpcDataPackage) {
 	// create a task bind with key, data and  time out call back function.
 	t := &timewheel.Task{
-		Data: map[string]interface{}{"time": 105626, "age": 100}, // business data
+		Data: nil, // business data
 		TimeoutCallback: func(task timewheel.Task) { // call back function on time out
 			// process someting after time out happened.
 			errorcode := int32(ST_READ_TIMEOUT)
@@ -146,7 +153,17 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 		}}
 
 	// add task and return unique task id
-	taskid, _ := c.tw.AddTask(timeout, *t) // add delay task
+	taskid, err := c.tw.AddTask(timeout, *t) // add delay task
+	if err != nil {
+		errorcode := int32(ST_ERROR)
+		request.ErrorCode(errorcode)
+		errormsg := err.Error()
+		request.ErrorText(errormsg)
+
+		ch <- request
+		return
+	}
+
 	defer func() {
 		c.tw.RemoveTask(taskid)
 		if e := recover(); e != nil {

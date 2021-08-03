@@ -51,6 +51,8 @@ const (
 
 	// in seconds
 	Reqeust_QPS_Expire = 300 //
+
+	Proto2_Version = "proto2"
 )
 
 // error log info definition
@@ -147,9 +149,16 @@ func parsePbMetaFromType(t reflect.Type) []*PbFieldMeta {
 
 func parseMetaString(meta string) *PbFieldMeta {
 	partials := strings.Split(meta, ",")
-	if len(partials) == 5 {
+	metaSize := len(partials)
+	if metaSize >= 4 {
 		tag, _ := strconv.Atoi(partials[1])
-		meta := &PbFieldMeta{Type: partials[0], Tag: tag, Opt: partials[2], Version: partials[4]}
+		meta := &PbFieldMeta{Type: partials[0], Tag: tag, Opt: partials[2]}
+		// check if has version Version: partials[4]
+		if metaSize >= 5 {
+			meta.Version = partials[4]
+		} else {
+			meta.Version = Proto2_Version
+		}
 		nameSplit := strings.Split(partials[3], "=")
 		if len(nameSplit) == 2 {
 			meta.Name = nameSplit[1]
