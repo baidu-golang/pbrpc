@@ -1,7 +1,7 @@
 # baidurpc
 [![Go Report Card](https://goreportcard.com/badge/github.com/baidu-golang/pbrpc?style=flat-square)](https://goreportcard.com/report/github.com/baidu-golang/pbrpc)
-[![Build Status](https://github.com/baidu-golang/pbrpc/actions/workflows/go.yml/badge.svg)](https://github.com/baidu-golang/pbrpc/actions/workflows/go.yml)
-[![codecov](https://codecov.io/gh/baidu-golang/pbrpc/branch/main/graph/badge.svg?token=ATQhFv91YP)](https://codecov.io/gh/baidu-golang/pbrpc)
+[![Go](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml/badge.svg)](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/baidu-golang/pbrpc/branch/master/graph/badge.svg?token=EY9Z88E82P)](https://codecov.io/gh/baidu-golang/pbrpc)
 [![Releases](https://img.shields.io/github/release/baidu-golang/pbrpc/all.svg?style=flat-square)](https://github.com/baidu-golang/pbrpc/releases)
 [![Go Reference](https://golang.com.cn/badge/github.com/baidu-golang/pbrpc.svg)](https://golang.com.cn/github.com/baidu-golang/pbrpc)
 [![LICENSE](https://img.shields.io/github/license/baidu-golang/pbrpc.svg?style=flat-square)](https://github.com/baidu-golang/pbrpc/blob/master/LICENSE)
