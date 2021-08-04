@@ -65,7 +65,7 @@ func doHaSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.HaRpcClient,
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 		name := "马林"
-		dm := baidurpc.EchoMessage{name}
+		dm := EchoMessage{name}
 
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
@@ -74,7 +74,7 @@ func doHaSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.HaRpcClient,
 			rpcInvocation.Attachment = []byte("This is attachment data")
 		}
 
-		parameterOut := baidurpc.EchoMessage{}
+		parameterOut := EchoMessage{}
 		var response *baidurpc.RpcDataPackage
 		var err error
 		if async {

@@ -60,12 +60,12 @@ func doSimpleRPCInvokeWithSignature(rpcClient *baidurpc.RpcClient, serviceName, 
 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 	name := "马林"
-	dm := baidurpc.EchoMessage{name}
+	dm := EchoMessage{name}
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)
 
-	parameterOut := baidurpc.EchoMessage{}
+	parameterOut := EchoMessage{}
 
 	rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
 }

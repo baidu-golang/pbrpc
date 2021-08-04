@@ -79,7 +79,7 @@ func TestServerWithPublishMethods(t *testing.T) {
 		Convey("publish method with RegisterName", func() {
 			rpcServer := createRpcServer(PORT_2)
 
-			echoservice := new(baidurpc.EchoService)
+			echoservice := new(EchoService)
 			rpcServer.RegisterName("EchoService", echoservice)
 
 			err := rpcServer.Start()
@@ -91,7 +91,7 @@ func TestServerWithPublishMethods(t *testing.T) {
 		Convey("publish method with RegisterNameWithMethodMapping", func() {
 			rpcServer := createRpcServer(PORT_2)
 
-			echoservice := new(baidurpc.EchoService)
+			echoservice := new(EchoService)
 			methodMapping := map[string]string{
 				"Echo":                    "echo",
 				"EchoWithAttchement":      "echoWithAttchement",

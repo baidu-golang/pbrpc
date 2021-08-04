@@ -116,7 +116,7 @@ func startRpcServer() *baidurpc.TcpServer {
 
 	rpcServer := createRpcServer(PORT_1)
 
-	echoservice := new(baidurpc.EchoService)
+	echoservice := new(EchoService)
 	methodMapping := map[string]string{
 		"Echo":                    "echo",
 		"EchoWithAttchement":      "echoWithAttchement",
@@ -180,7 +180,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 		name := "马林"
-		dm := baidurpc.EchoMessage{name}
+		dm := EchoMessage{name}
 
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
@@ -193,7 +193,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 			rpcInvocation.AuthenticateData = []byte(AUTH_TOKEN)
 		}
 
-		parameterOut := baidurpc.EchoMessage{}
+		parameterOut := EchoMessage{}
 		var response *baidurpc.RpcDataPackage
 		var err error
 		if async {

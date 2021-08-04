@@ -23,13 +23,14 @@
  * @Description:
  * @Date: 2021-08-03 14:08:57
  */
-package baidurpc
+package baidurpc_test
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	baidurpc "github.com/baidu-golang/pbrpc"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -73,7 +74,7 @@ func (rpc *EchoService) EchoWithAttchement(c context.Context, in *EchoMessage) (
 	var ret = "hello "
 
 	// get attchement
-	attachement := Attachement(c)
+	attachement := baidurpc.Attachement(c)
 
 	if len(in.Name) == 0 {
 		ret = ret + "veryone"
@@ -87,7 +88,7 @@ func (rpc *EchoService) EchoWithAttchement(c context.Context, in *EchoMessage) (
 	att := "I am a attachement" + string(attachement)
 
 	// bind attachment
-	cc := BindAttachement(context.Background(), []byte(att))
+	cc := baidurpc.BindAttachement(context.Background(), []byte(att))
 	return &dm, cc
 }
 
@@ -105,7 +106,7 @@ func (rpc *EchoService) EchoWithCustomizedError(c context.Context, in *EchoMessa
 	dm := EchoMessage{ret}
 
 	// bind with err
-	cc := BindError(context.Background(), fmt.Errorf("this is customized error"))
+	cc := baidurpc.BindError(context.Background(), fmt.Errorf("this is customized error"))
 	return &dm, cc
 }
 
