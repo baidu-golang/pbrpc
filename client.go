@@ -72,6 +72,7 @@ type RpcInvocation struct {
 	LogId            *int64
 	CompressType     *int32
 	AuthenticateData []byte
+	ChunkSize        uint32
 }
 
 // NewRpcCient new rpc client
@@ -119,6 +120,7 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 	rpcDataPackage.MethodName(*r.MethodName)
 	rpcDataPackage.MagicCode(MAGIC_CODE)
 	rpcDataPackage.AuthenticationData(r.AuthenticateData)
+	rpcDataPackage.chunkSize = r.ChunkSize
 	if r.CompressType != nil {
 		rpcDataPackage.CompressType(*r.CompressType)
 	}
@@ -180,7 +182,7 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 		}
 	}()
 
-	rsp, err := c.Session.SendReceive(request)
+	rsp, err := c.doSendReceive(request)
 	if err != nil {
 		errorcode := int32(ST_ERROR)
 		request.ErrorCode(errorcode)
@@ -192,6 +194,10 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 	}
 
 	ch <- rsp
+}
+
+func (c *RpcClient) doSendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPackage, error) {
+	return c.Session.SendReceive(rpcDataPackage)
 }
 
 // SendRpcRequest send rpc request to remote server
@@ -207,7 +213,7 @@ func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage
 		return nil, err
 	}
 
-	rsp, err := c.Session.SendReceive(rpcDataPackage)
+	rsp, err := c.doSendReceive(rpcDataPackage)
 	if err != nil {
 		errorcode := int32(ST_ERROR)
 		rpcDataPackage.ErrorCode(errorcode)

@@ -43,6 +43,8 @@ type ConnectionTester interface {
 
 type TCPConnection struct {
 	session *link.Session
+
+	protocol *RpcDataPackageProtocol
 }
 
 /*
@@ -70,9 +72,13 @@ func (c *TCPConnection) connect(url URL, timeout *time.Duration, sendChanSize in
 	}
 
 	u := *host + ":" + strconv.Itoa(*port)
-	protocol := &RpcDataPackageProtocol{timeout: timeout}
+	protocol, err := NewRpcDataPackageProtocol()
+	if err != nil {
+		return err
+	}
+	protocol.timeout = timeout
+	c.protocol = protocol
 	var session *link.Session
-	var err error
 	if timeout == nil {
 		session, err = link.Dial("tcp", u, protocol, sendChanSize)
 	} else {
@@ -134,10 +140,15 @@ func doReceive(session *link.Session) (rpcDataPackage *RpcDataPackage, err error
 
 }
 
+// Close close connection
 func (c *TCPConnection) Close() error {
 	if c.session != nil {
 		Info("close session id=", c.session.ID())
 		return c.session.Close()
+	}
+
+	if c.protocol != nil {
+		c.protocol.Stop()
 	}
 	return nil
 }

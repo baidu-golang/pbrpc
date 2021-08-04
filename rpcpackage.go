@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -88,6 +89,9 @@ type RpcDataPackage struct {
 	Meta       *RpcMeta
 	Data       []byte
 	Attachment []byte
+
+	// private field
+	chunkSize uint32
 }
 
 func NewRpcDataPackage() *RpcDataPackage {
@@ -124,6 +128,13 @@ func initHeader(r *RpcDataPackage) {
 func initRpcMeta(r *RpcDataPackage) {
 	if r.Meta == nil {
 		r.Meta = &RpcMeta{}
+	}
+}
+
+func initChunkinfo(r *RpcDataPackage) {
+	initRpcMeta(r)
+	if r.Meta.ChunkInfo == nil {
+		r.Meta.ChunkInfo = &ChunkInfo{}
 	}
 }
 
@@ -438,4 +449,79 @@ func (r *RpcDataPackage) Read(b []byte) error {
 
 	return r.ReadIO(buf)
 
+}
+
+// Chunk chunk to small packages by chunk size
+func (r *RpcDataPackage) Chunk(chunkSize int) []*RpcDataPackage {
+	if chunkSize <= 0 {
+		return []*RpcDataPackage{r}
+	}
+
+	dataSize := len(r.Data)
+	chunkCount := dataSize / chunkSize
+	if dataSize%chunkSize != 0 {
+		chunkCount++
+	}
+	if chunkCount == 1 {
+		return []*RpcDataPackage{r}
+	}
+
+	ret := make([]*RpcDataPackage, chunkCount)
+	startPos := 0
+	chunkStreamID := rand.Int63()
+
+	for i := 0; i < chunkCount; i++ {
+		temp := *r
+		base := &temp // copy value
+
+		tempMeta := *base.Meta
+		base.Meta = &tempMeta
+		initChunkinfo(base)
+		offset := startPos + chunkSize
+		if offset > dataSize {
+			offset = dataSize
+		}
+		base.Data = base.Data[startPos:offset]
+		startPos += chunkSize
+		tempChunkInfo := &ChunkInfo{StreamId: &chunkStreamID, ChunkId: proto.Int64(int64(i + 1))}
+		if i == chunkCount-1 {
+			// this is last package
+			tempChunkInfo.ChunkId = proto.Int64(int64(-1))
+		}
+		if i > 0 {
+			// fix duplicate attachment data
+			base.Attachment = nil
+		}
+		chunkInfo := *tempChunkInfo
+		base.Meta.ChunkInfo = &chunkInfo
+		ret[i] = base
+	}
+
+	return ret
+}
+
+// GetChunkStreamId
+func (r *RpcDataPackage) GetChunkStreamId() int64 {
+	initRpcMeta(r)
+	return r.Meta.ChunkInfo.GetStreamId()
+}
+
+// getChunkId
+func (r *RpcDataPackage) getChunkId() int64 {
+	initRpcMeta(r)
+	return r.Meta.ChunkInfo.GetChunkId()
+}
+
+// IsChunkPackage
+func (r *RpcDataPackage) IsChunkPackage() bool {
+	return r.GetChunkStreamId() != 0
+}
+
+// IsFinalPackage
+func (r *RpcDataPackage) IsFinalPackage() bool {
+	return r.getChunkId() == -1
+}
+
+func (r *RpcDataPackage) ClearChunkStatus() {
+	r.ChunkInfo(0, 0)
 }

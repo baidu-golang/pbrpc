@@ -34,13 +34,16 @@ type StringMatchAuthService struct {
 
 // Authenticate
 func (as *StringMatchAuthService) Authenticate(service, name string, authToken []byte) bool {
+	if authToken == nil {
+		return false
+	}
 	return strings.Compare(AUTH_TOKEN, string(authToken)) == 0
 }
 
 // TestSingleTcpConnectionClient
 func TestSingleTcpConnectionClient(t *testing.T) {
 	Convey("TestSingleTcpConnectionClient", t, func() {
-		tcpServer := startRpcServer()
+		tcpServer := startRpcServer(0)
 		defer tcpServer.Stop()
 
 		conn, client, err := createClient()
@@ -50,14 +53,15 @@ func TestSingleTcpConnectionClient(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, true, false)
-		testSendRpc("Client send rpc request(async)", client, false, false)
+		testSendRpc("Client send rpc request", client, false, false, 0)
+		testSendRpc("Client send rpc request(async)", client, true, false, 0)
 	})
 }
 
+// TestSingleTcpConnectionClientWithAuthenticate
 func TestSingleTcpConnectionClientWithAuthenticate(t *testing.T) {
-	Convey("TestSingleTcpConnectionClient", t, func() {
-		tcpServer := startRpcServer()
+	Convey("TestSingleTcpConnectionClientWithAuthenticate", t, func() {
+		tcpServer := startRpcServer(0)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
 		defer tcpServer.Stop()
 
@@ -68,15 +72,53 @@ func TestSingleTcpConnectionClientWithAuthenticate(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, true, true)
-		testSendRpc("Client send rpc request(async)", client, false, true)
+		testSendRpc("Client send rpc request", client, false, true, 0)
+		testSendRpc("Client send rpc request(async)", client, true, true, 0)
+	})
+}
+
+// TestSingleTcpConnectionClientWithChunk
+func TestSingleTcpConnectionClientWithChunk(t *testing.T) {
+	Convey("TestSingleTcpConnectionClientWithChunk", t, func() {
+		tcpServer := startRpcServer(0)
+		tcpServer.SetAuthService(new(StringMatchAuthService))
+		defer tcpServer.Stop()
+
+		conn, client, err := createClient()
+		So(err, ShouldBeNil)
+		So(conn, ShouldNotBeNil)
+		So(client, ShouldNotBeNil)
+		defer client.Close()
+		defer conn.Close()
+
+		testSendRpc("Client send rpc request", client, false, true, 2)
+		testSendRpc("Client send rpc request(async)", client, true, true, 2)
+	})
+}
+
+// TestSingleTcpConnectionClientAndServerWithChunk
+func TestSingleTcpConnectionClientAndServerWithChunk(t *testing.T) {
+	Convey("TestSingleTcpConnectionClientWithChunk", t, func() {
+		tcpServer := startRpcServer(2)
+		tcpServer.SetAuthService(new(StringMatchAuthService))
+		defer tcpServer.Stop()
+
+		conn, client, err := createClient()
+		So(err, ShouldBeNil)
+		So(conn, ShouldNotBeNil)
+		So(client, ShouldNotBeNil)
+		defer client.Close()
+		defer conn.Close()
+
+		testSendRpc("Client send rpc request", client, false, true, 2)
+		testSendRpc("Client send rpc request(async)", client, true, true, 2)
 	})
 }
 
 // TestPooledTcpConnectionClient
 func TestPooledTcpConnectionClient(t *testing.T) {
 	Convey("TestSingleTcpConnectionClient", t, func() {
-		tcpServer := startRpcServer()
+		tcpServer := startRpcServer(0)
 		defer tcpServer.Stop()
 
 		conn, client, err := createPooledConnectionClient()
@@ -86,35 +128,44 @@ func TestPooledTcpConnectionClient(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, true, false)
-		testSendRpc("Client send rpc request(async)", client, false, false)
+		testSendRpc("Client send rpc request", client, true, false, 0)
+		testSendRpc("Client send rpc request(async)", client, false, false, 0)
 	})
 }
 
-func testSendRpc(testName string, client *baidurpc.RpcClient, async, auth bool) {
+func testSendRpc(testName string, client *baidurpc.RpcClient, async, auth bool, chunksize uint32) {
 	Convey(testName, func() {
 		Convey("Test send request EchoService!echo", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, async, false, auth)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, async, false, auth, chunksize)
 		})
 		Convey("Test send request EchoService!echoWithAttchement", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithAttchement", true, false, async, false, auth)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithAttchement", true, false, async, false, auth, chunksize)
 		})
 		Convey("Test send request EchoService!echoWithCustomizedError", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithCustomizedError", false, true, async, false, auth)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithCustomizedError", false, true, async, false, auth, chunksize)
 		})
 		Convey("Test send request EchoService!echoWithoutContext", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithoutContext", false, false, async, false, auth)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithoutContext", false, false, async, false, auth, chunksize)
 		})
 		Convey("Test send request EchoService!EchoSlowTest", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "EchoSlowTest", false, false, async, true, auth)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "EchoSlowTest", false, false, async, true, auth, chunksize)
 		})
 	})
+}
+
+// createRpcServer create rpc server by port and localhost
+func createRpcServerWithChunkSize(port int, chunksize uint32) *baidurpc.TcpServer {
+	serverMeta := baidurpc.ServerMeta{}
+	serverMeta.Port = Int(port)
+	serverMeta.ChunkSize = chunksize
+	rpcServer := baidurpc.NewTpcServer(&serverMeta)
+	return rpcServer
 }
 
 // startRpcServer start rpc server and register echo service as default rpc service
-func startRpcServer() *baidurpc.TcpServer {
+func startRpcServer(chunksize uint32) *baidurpc.TcpServer {
 
-	rpcServer := createRpcServer(PORT_1)
+	rpcServer := createRpcServerWithChunkSize(PORT_1, chunksize)
 
 	echoservice := new(EchoService)
 	methodMapping := map[string]string{
@@ -139,7 +190,7 @@ func createClient() (baidurpc.Connection, *baidurpc.RpcClient, error) {
 	url := baidurpc.URL{}
 	url.SetHost(&host).SetPort(&port)
 
-	timeout := time.Second * 5
+	timeout := time.Second * 500
 	// create client by simple connection
 	connection, err := baidurpc.NewTCPConnection(url, &timeout)
 	if err != nil {
@@ -175,15 +226,17 @@ func createPooledConnectionClient() (baidurpc.Connection, *baidurpc.RpcClient, e
 }
 
 // doSimpleRPCInvokeWithSignatureWithConvey  send rpc request
-func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, serviceName, methodName string, withAttachement, withCustomErr, async, timeout, auth bool) {
+func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, serviceName, methodName string,
+	withAttachement, withCustomErr, async, timeout, auth bool, chunkSize uint32) {
 	Convey("Test Client send rpc  request", func() {
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
-		name := "马林"
+		name := "(马林)(matthew)(XML)(jhunters)"
 		dm := EchoMessage{name}
 
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
+		rpcInvocation.ChunkSize = chunkSize
 
 		if withAttachement {
 			rpcInvocation.Attachment = []byte("This is attachment data")

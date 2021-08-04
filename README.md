@@ -19,6 +19,7 @@ features:
 - 集成内置HTTP管理功能[TODO]
 - Client支持Ha的负载均衡功能[Done]
 - 灵活的超时设置功能[Done]
+- 分包chunk支持，针对大数据包支持拆分包的发送的功能[Done]
 - 支持 Web管理能力以及内置能力[Done] [查看](https://github.com/jhunters/brpcweb)
   ​
 ### Installing 
@@ -88,6 +89,8 @@ $ go get github.com/baidu-golang/pbrpc
 	serverMeta := baidurpc.ServerMeta{}
 	serverMeta.Host = nil
 	serverMeta.Port = Int(*port)
+	// set chunk size this will open server chunk package by specified size 
+	// serverMeta.ChunkSize = 1024 // 1k
 	rpcServer := baidurpc.NewTpcServer(&serverMeta)
 
 	echoService := new(EchoService)
@@ -171,7 +174,6 @@ $ go get github.com/baidu-golang/pbrpc
 	var timewheelSlot uint16 = 300 
 	rpcClient, err := baidurpc.NewRpcCientWithTimeWheelSetting(connection, timewheelInterval, timewheelSlot)
 
-	
     // 调用时，设置超时功能
 	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
 	// 如果发生超时， 返回的错误码为 62
@@ -185,8 +187,21 @@ $ go get github.com/baidu-golang/pbrpc
 	methodName := "echo"
 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 	// set auth token
-	rpcInvocation.Attachment = []byte("This is attachment data")
-	
+	rpcInvocation.AuthenticateData = []byte("AUTH_TOKEN")
+    // 调用时，设置超时功能
+	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
+	// 如果发生超时， 返回的错误码为 62
+
+```
+
+### 设置分包chunk功能
+```go
+    // 调用RPC
+	serviceName := "echoService"
+	methodName := "echo"
+	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+	// 设置分包大小(byte)
+	rpcInvocation.ChunkSize = 1024 //1k
     // 调用时，设置超时功能
 	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
 	// 如果发生超时， 返回的错误码为 62

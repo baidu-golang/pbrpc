@@ -32,7 +32,7 @@ import (
 // TestHaClient test ha client
 func TestHaClient(t *testing.T) {
 	Convey("TestSingleTcpConnectionClient", t, func() {
-		tcpServer := startRpcServer()
+		tcpServer := startRpcServer(0)
 		defer tcpServer.Stop()
 
 		host := "localhost"

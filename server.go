@@ -75,6 +75,9 @@ var (
 
 	m           proto.Message
 	MessageType = reflect.TypeOf(m)
+
+	chunkExpireTimewheelInterval = 1 * time.Second
+	chunkExpireTimeWheelSlot     = 300
 )
 
 type ServerMeta struct {
@@ -82,6 +85,7 @@ type ServerMeta struct {
 	Port                *int
 	IdleTimeoutSenconds *int
 	QPSExpireInSecs     int
+	ChunkSize           uint32
 }
 
 type serviceType struct {
@@ -268,6 +272,8 @@ type TcpServer struct {
 	requestStatus *RPCRequestStatus
 
 	authService AuthService
+
+	protocol *RpcDataPackageProtocol
 }
 
 type serviceMeta struct {
@@ -304,10 +310,13 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 
 // StartServer start server with net.Listener
 func (s *TcpServer) StartServer(l net.Listener) error {
-
-	protocol := &RpcDataPackageProtocol{}
+	protocol, err := NewRpcDataPackageProtocol()
+	protocol.chunkSize = s.serverMeta.ChunkSize
+	if err != nil {
+		return err
+	}
 	server := link.NewServer(l, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
-
+	s.protocol = protocol
 	s.server = server
 	go server.Serve()
 
@@ -504,6 +513,7 @@ func GetServiceId(serviceName, methodName string) string {
 	return serviceName + "!" + methodName
 }
 
+// Stop do stop rpc server
 func (s *TcpServer) Stop() error {
 	s.stop = true
 	s.started = false
@@ -512,6 +522,9 @@ func (s *TcpServer) Stop() error {
 	}
 	if s.requestStatus != nil {
 		s.requestStatus.Stop()
+	}
+	if s.protocol != nil {
+		s.protocol.Stop()
 	}
 	return nil
 }

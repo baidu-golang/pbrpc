@@ -175,3 +175,34 @@ func TestWriteReaderWithSNAPPY(t *testing.T) {
 	})
 
 }
+
+// TestChunk
+func TestChunk(t *testing.T) {
+
+	Convey("Test package chunk", t, func() {
+		rpcDataPackage := initRpcDataPackage()
+
+		Convey("Test package chunk with invalid chunk size", func() {
+			chunkSize := 0
+			chunkPackages := rpcDataPackage.Chunk(chunkSize)
+			So(len(chunkPackages), ShouldEqual, 1)
+		})
+
+		Convey("Test package chunk with chunk size", func() {
+			chunkSize := 1
+			count := len(rpcDataPackage.Data)
+			chunkPackages := rpcDataPackage.Chunk(chunkSize)
+			So(len(chunkPackages), ShouldEqual, count)
+			So(len(chunkPackages[0].Data), ShouldEqual, 1)
+		})
+
+		Convey("Test package chunk with large chunk size", func() {
+			chunkSize := 100
+			datasize := len(rpcDataPackage.Data)
+			chunkPackages := rpcDataPackage.Chunk(chunkSize)
+			So(len(chunkPackages), ShouldEqual, 1)
+			So(len(chunkPackages[0].Data), ShouldEqual, datasize)
+		})
+	})
+
+}

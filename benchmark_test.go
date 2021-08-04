@@ -33,7 +33,7 @@ func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
 	host := "localhost"
 	port := PORT_1
 
-	tcpServer := startRpcServer()
+	tcpServer := startRpcServer(0)
 	defer tcpServer.Stop()
 
 	conn, client, _ := createClient()
