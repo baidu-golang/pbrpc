@@ -196,7 +196,7 @@ func (c *RpcClient) safeReceive() (*RpcDataPackage, error) {
 }
 
 // asyncRequest
-func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage, ch chan<- *RpcDataPackage) {
+func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage, ch chan *RpcDataPackage) {
 	// create a task bind with key, data and  time out call back function.
 	t := &timewheel.Task{
 		Data: nil, // business data
@@ -228,7 +228,7 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 		}
 	}()
 
-	rsp, err := c.doSendReceive(request)
+	rsp, err := c.doSendReceive(request, ch)
 	if err != nil {
 		errorcode := int32(ST_ERROR)
 		request.ErrorCode(errorcode)
@@ -242,18 +242,12 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 	ch <- rsp
 }
 
-func (c *RpcClient) doSendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPackage, error) {
-	// set request unique id
-	correlationId := atomic.AddInt64(&c.correlationId, 1)
-	rpcDataPackage.CorrelationId(correlationId)
+func (c *RpcClient) doSendReceive(rpcDataPackage *RpcDataPackage, ch <-chan *RpcDataPackage) (*RpcDataPackage, error) {
 
 	err := c.Session.Send(rpcDataPackage)
 	if err != nil {
 		return nil, err
 	}
-	ch := make(chan *RpcDataPackage)
-	c.requestCallState[correlationId] = ch
-
 	// async wait response
 	return <-ch, nil
 
@@ -271,8 +265,14 @@ func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage
 	if err != nil {
 		return nil, err
 	}
+	// set request unique id
+	correlationId := atomic.AddInt64(&c.correlationId, 1)
+	rpcDataPackage.CorrelationId(correlationId)
 
-	rsp, err := c.doSendReceive(rpcDataPackage)
+	ch := make(chan *RpcDataPackage)
+	c.requestCallState[correlationId] = ch
+
+	rsp, err := c.doSendReceive(rpcDataPackage, ch)
 	if err != nil {
 		errorcode := int32(ST_ERROR)
 		rpcDataPackage.ErrorCode(errorcode)
@@ -321,10 +321,13 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 		return nil, err
 	}
 
+	// set request unique id
+	correlationId := atomic.AddInt64(&c.correlationId, 1)
+	rpcDataPackage.CorrelationId(correlationId)
+
 	ch := make(chan *RpcDataPackage)
+	c.requestCallState[correlationId] = ch
 	go c.asyncRequest(timeout, rpcDataPackage, ch)
-	defer close(ch)
-	// wait for message
 	rsp := <-ch
 
 	r := rsp
