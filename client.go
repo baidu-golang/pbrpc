@@ -53,6 +53,8 @@ type RpcClient struct {
 
 	// to close loop receive
 	closeChan chan bool
+
+	asyncMode bool
 }
 
 type URL struct {
@@ -93,12 +95,18 @@ func NewRpcCient(connection Connection) (*RpcClient, error) {
 func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval time.Duration, timewheelSlot uint16) (*RpcClient, error) {
 	c := RpcClient{}
 	c.Session = connection
+
+	_, pooled := connection.(*TCPConnectionPool)
+	c.asyncMode = !pooled
+
 	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
 	c.closeChan = make(chan bool, 1)
 	c.requestCallState = make(map[int64]chan *RpcDataPackage)
 
-	go c.startLoopReceive()
+	if c.asyncMode {
+		go c.startLoopReceive()
+	}
 	return &c, nil
 }
 
@@ -252,13 +260,15 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 }
 
 func (c *RpcClient) doSendReceive(rpcDataPackage *RpcDataPackage, ch <-chan *RpcDataPackage) (*RpcDataPackage, error) {
-
-	err := c.Session.Send(rpcDataPackage)
-	if err != nil {
-		return nil, err
+	if c.asyncMode {
+		err := c.Session.Send(rpcDataPackage)
+		if err != nil {
+			return nil, err
+		}
+		// async wait response
+		return <-ch, nil
 	}
-	// async wait response
-	return <-ch, nil
+	return c.Session.SendReceive(rpcDataPackage)
 
 }
 
@@ -278,10 +288,15 @@ func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage
 	correlationId := atomic.AddInt64(&c.correlationId, 1)
 	rpcDataPackage.CorrelationId(correlationId)
 
-	ch := make(chan *RpcDataPackage)
-	c.requestCallState[correlationId] = ch
+	var rsp *RpcDataPackage
+	if c.asyncMode {
+		ch := make(chan *RpcDataPackage)
+		c.requestCallState[correlationId] = ch
 
-	rsp, err := c.doSendReceive(rpcDataPackage, ch)
+		rsp, err = c.doSendReceive(rpcDataPackage, ch)
+	} else {
+		rsp, err = c.Session.SendReceive(rpcDataPackage)
+	}
 	if err != nil {
 		errorcode := int32(ST_ERROR)
 		rpcDataPackage.ErrorCode(errorcode)
@@ -334,14 +349,24 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 	correlationId := atomic.AddInt64(&c.correlationId, 1)
 	rpcDataPackage.CorrelationId(correlationId)
 
-	ch := make(chan *RpcDataPackage)
-	c.requestCallState[correlationId] = ch
-	go c.asyncRequest(timeout, rpcDataPackage, ch)
-	rsp := <-ch
+	var rsp *RpcDataPackage
+	if c.asyncMode {
+		ch := make(chan *RpcDataPackage)
+		c.requestCallState[correlationId] = ch
+		go c.asyncRequest(timeout, rpcDataPackage, ch)
+		rsp = <-ch
+	} else {
+
+		ch := make(chan *RpcDataPackage)
+		go c.asyncRequest(timeout, rpcDataPackage, ch)
+		defer close(ch)
+		// wait for message
+		rsp = <-ch
+	}
 
 	r := rsp
 	if r == nil {
-		return nil, ERR_RESPONSE_NIL //to ingore this nil value
+		return nil, ERR_RESPONSE_NIL //to ignore this nil value
 	}
 
 	errorCode := r.GetMeta().GetResponse().GetErrorCode()

@@ -152,7 +152,7 @@ func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
 
 // TestPooledTcpConnectionClient
 func TestPooledTcpConnectionClient(t *testing.T) {
-	Convey("TestSingleTcpConnectionClient", t, func() {
+	Convey("TestPooledTcpConnectionClient", t, func() {
 		tcpServer := startRpcServer(0)
 		defer tcpServer.Stop()
 
@@ -163,8 +163,8 @@ func TestPooledTcpConnectionClient(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, true, false, 0)
-		testSendRpc("Client send rpc request(async)", client, false, false, 0)
+		testSendRpc("Client send rpc request", client, false, true, 0)
+		testSendRpc("Client send rpc request(async)", client, true, true, 0)
 	})
 }
 
@@ -285,7 +285,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		var response *baidurpc.RpcDataPackage
 		var err error
 		if async {
-			response, err = rpcClient.SendRpcRequestWithTimeout(2*time.Second, rpcInvocation, &parameterOut)
+			response, err = rpcClient.SendRpcRequestWithTimeout(1*time.Second, rpcInvocation, &parameterOut)
 			if timeout {
 				So(err, ShouldNotBeNil)
 				return

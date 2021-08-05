@@ -132,7 +132,7 @@ func (rpc *EchoService) EchoWithoutContext(c context.Context, in *EchoMessage) *
 func (rpc *EchoService) EchoSlowTest(c context.Context, in *EchoMessage) *EchoMessage {
 	var ret = "hello "
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 	if len(in.Name) == 0 {
 		ret = ret + "veryone"
 	} else {

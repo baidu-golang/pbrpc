@@ -122,8 +122,8 @@ func (c *TCPConnectionPool) Send(rpcDataPackage *RpcDataPackage) error {
 		return err
 	}
 	defer c.objectPool.ReturnObject(context.Background(), object)
-
-	return object.Send(rpcDataPackage)
+	err = object.Send(rpcDataPackage)
+	return err
 
 }
 
