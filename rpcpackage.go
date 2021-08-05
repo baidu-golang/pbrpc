@@ -383,7 +383,7 @@ func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 		}
 		log.Println("Read head error", err)
 		// only to close current connection
-		return ERR_IGNORE_ERR
+		return err
 	}
 
 	// unmarshal Head message

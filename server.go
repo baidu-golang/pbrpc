@@ -385,7 +385,9 @@ func (s *TcpServer) SetAuthService(authservice AuthService) {
 
 func (s *TcpServer) handleResponse(session *link.Session) {
 	// after function return must close session
-	defer session.Close()
+	defer func() {
+		session.Close()
+	}()
 
 	for {
 

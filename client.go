@@ -51,7 +51,8 @@ type RpcClient struct {
 	// async request state map
 	requestCallState map[int64]chan *RpcDataPackage
 
-	stop bool
+	// to close loop receive
+	closeChan chan bool
 }
 
 type URL struct {
@@ -94,6 +95,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c.Session = connection
 	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
+	c.closeChan = make(chan bool, 1)
 	c.requestCallState = make(map[int64]chan *RpcDataPackage)
 
 	go c.startLoopReceive()
@@ -155,34 +157,41 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 // define client methods
 // Close close client with time wheel
 func (c *RpcClient) Close() {
-	c.stop = true
+	c.closeChan <- true
 	if c.tw != nil {
 		c.tw.Stop()
 	}
 }
 
 func (c *RpcClient) startLoopReceive() {
-
 	for {
-		if c.stop {
+
+		select {
+		case <-c.closeChan:
+			// exit loop
 			return
-		}
-
-		dataPackage, _ := c.safeReceive()
-
-		if dataPackage != nil && dataPackage.Meta != nil {
-			correlationId := dataPackage.Meta.GetCorrelationId()
-			ch, exist := c.requestCallState[correlationId]
-			if !exist {
-				// bad response correlationId
-				Errorf("bad correlationId '%d' not exist ", correlationId)
-				continue
+		default:
+			dataPackage, err := c.safeReceive()
+			if err != nil {
+				// if met error, wait some time to retry
+				time.Sleep(200 * time.Millisecond)
 			}
-			delete(c.requestCallState, correlationId)
-			go func() {
-				ch <- dataPackage
-			}()
+
+			if dataPackage != nil && dataPackage.Meta != nil {
+				correlationId := dataPackage.Meta.GetCorrelationId()
+				ch, exist := c.requestCallState[correlationId]
+				if !exist {
+					// bad response correlationId
+					Errorf("bad correlationId '%d' not exist ", correlationId)
+					continue
+				}
+				delete(c.requestCallState, correlationId)
+				go func() {
+					ch <- dataPackage
+				}()
+			}
 		}
+
 	}
 }
 
