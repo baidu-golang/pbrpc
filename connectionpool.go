@@ -115,6 +115,29 @@ func (c *TCPConnectionPool) SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDat
 
 }
 
+// Send
+func (c *TCPConnectionPool) Send(rpcDataPackage *RpcDataPackage) error {
+	object, err := c.borrowObject()
+	if err != nil {
+		return err
+	}
+	defer c.objectPool.ReturnObject(context.Background(), object)
+
+	return object.Send(rpcDataPackage)
+
+}
+
+// Receive
+func (c *TCPConnectionPool) Receive() (*RpcDataPackage, error) {
+	object, err := c.borrowObject()
+	if err != nil {
+		return nil, err
+	}
+	defer c.objectPool.ReturnObject(context.Background(), object)
+
+	return object.Receive()
+}
+
 func (c *TCPConnectionPool) Close() error {
 	if c.objectPool == nil {
 		return ERR_POOL_NOT_INIT

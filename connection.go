@@ -34,6 +34,8 @@ var LOG_INVALID_PORT = "[conn-003]invalid parameter 'url' of port property is '%
 */
 type Connection interface {
 	SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPackage, error)
+	Send(rpcDataPackage *RpcDataPackage) error
+	Receive() (*RpcDataPackage, error)
 	Close() error
 }
 
@@ -110,6 +112,7 @@ func (c *TCPConnection) GetId() uint64 {
 	return uint64(0)
 }
 
+// SendReceive
 func (c *TCPConnection) SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPackage, error) {
 	if c.session == nil {
 		return nil, ERR_SESSION_IS_NIL
@@ -123,6 +126,25 @@ func (c *TCPConnection) SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPac
 
 	return doReceive(c.session)
 
+}
+
+// Send
+func (c *TCPConnection) Send(rpcDataPackage *RpcDataPackage) error {
+	if c.session == nil {
+		return ERR_SESSION_IS_NIL
+	}
+
+	return c.session.Send(rpcDataPackage)
+
+}
+
+// Receive
+func (c *TCPConnection) Receive() (*RpcDataPackage, error) {
+	if c.session == nil {
+		return nil, ERR_SESSION_IS_NIL
+	}
+
+	return doReceive(c.session)
 }
 
 func doReceive(session *link.Session) (rpcDataPackage *RpcDataPackage, err error) {

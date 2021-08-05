@@ -81,11 +81,12 @@ var (
 )
 
 type ServerMeta struct {
-	Host                *string
-	Port                *int
-	IdleTimeoutSenconds *int
-	QPSExpireInSecs     int
-	ChunkSize           uint32
+	Host               *string
+	Port               *int
+	IdleTimeoutSeconds *int
+	QPSExpireInSecs    int
+	ChunkSize          uint32
+	TimeoutSeconds     uint32
 }
 
 type serviceType struct {
@@ -290,8 +291,8 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	tcpServer.started = false
 	tcpServer.stop = false
 
-	if serverMeta.IdleTimeoutSenconds == nil {
-		serverMeta.IdleTimeoutSenconds = &DEAFULT_IDLE_TIME_OUT_SECONDS
+	if serverMeta.IdleTimeoutSeconds == nil {
+		serverMeta.IdleTimeoutSeconds = &DEAFULT_IDLE_TIME_OUT_SECONDS
 	}
 
 	if serverMeta.QPSExpireInSecs <= 0 {
@@ -312,6 +313,10 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 func (s *TcpServer) StartServer(l net.Listener) error {
 	protocol, err := NewRpcDataPackageProtocol()
 	protocol.chunkSize = s.serverMeta.ChunkSize
+	if s.serverMeta.TimeoutSeconds > 0 {
+		t := time.Duration(int64(s.serverMeta.TimeoutSeconds)) * time.Second
+		protocol.timeout = &t
+	}
 	if err != nil {
 		return err
 	}

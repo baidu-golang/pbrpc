@@ -74,8 +74,8 @@ func (hsv *HttpStatusView) Status(c context.Context) (*RPCStatus, context.Contex
 	if s.serverMeta.Port != nil {
 		result.Port = int32(*s.serverMeta.Port)
 	}
-	if s.serverMeta.IdleTimeoutSenconds != nil {
-		result.TimeoutSenconds = int32(*s.serverMeta.IdleTimeoutSenconds)
+	if s.serverMeta.IdleTimeoutSeconds != nil {
+		result.TimeoutSenconds = int32(*s.serverMeta.IdleTimeoutSeconds)
 	}
 
 	rpcServices := s.services

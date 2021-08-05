@@ -18,6 +18,7 @@ package baidurpc
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -44,6 +45,13 @@ RPC client invoke
 type RpcClient struct {
 	Session Connection
 	tw      *timewheel.TimeWheel
+
+	// 单次请求唯一标识
+	correlationId int64
+	// async request state map
+	requestCallState map[int64]chan *RpcDataPackage
+
+	stop bool
 }
 
 type URL struct {
@@ -86,6 +94,9 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c.Session = connection
 	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
+	c.requestCallState = make(map[int64]chan *RpcDataPackage)
+
+	go c.startLoopReceive()
 	return &c, nil
 }
 
@@ -144,9 +155,44 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 // define client methods
 // Close close client with time wheel
 func (c *RpcClient) Close() {
+	c.stop = true
 	if c.tw != nil {
 		c.tw.Stop()
 	}
+}
+
+func (c *RpcClient) startLoopReceive() {
+
+	for {
+		if c.stop {
+			return
+		}
+
+		dataPackage, _ := c.safeReceive()
+
+		if dataPackage != nil && dataPackage.Meta != nil {
+			correlationId := dataPackage.Meta.GetCorrelationId()
+			ch, exist := c.requestCallState[correlationId]
+			if !exist {
+				// bad response correlationId
+				Errorf("bad correlationId '%d' not exist ", correlationId)
+				continue
+			}
+			delete(c.requestCallState, correlationId)
+			go func() {
+				ch <- dataPackage
+			}()
+		}
+	}
+}
+
+func (c *RpcClient) safeReceive() (*RpcDataPackage, error) {
+	defer func() {
+		if p := recover(); p != nil {
+			Warningf("receive catched panic error %v", p)
+		}
+	}()
+	return c.Session.Receive()
 }
 
 // asyncRequest
@@ -197,7 +243,20 @@ func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage,
 }
 
 func (c *RpcClient) doSendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPackage, error) {
-	return c.Session.SendReceive(rpcDataPackage)
+	// set request unique id
+	correlationId := atomic.AddInt64(&c.correlationId, 1)
+	rpcDataPackage.CorrelationId(correlationId)
+
+	err := c.Session.Send(rpcDataPackage)
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan *RpcDataPackage)
+	c.requestCallState[correlationId] = ch
+
+	// async wait response
+	return <-ch, nil
+
 }
 
 // SendRpcRequest send rpc request to remote server

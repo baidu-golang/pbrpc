@@ -98,7 +98,7 @@ func TestSingleTcpConnectionClientWithChunk(t *testing.T) {
 
 // TestSingleTcpConnectionClientAndServerWithChunk
 func TestSingleTcpConnectionClientAndServerWithChunk(t *testing.T) {
-	Convey("TestSingleTcpConnectionClientWithChunk", t, func() {
+	Convey("TestSingleTcpConnectionClientAndServerWithChunk", t, func() {
 		tcpServer := startRpcServer(2)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
 		defer tcpServer.Stop()
@@ -112,6 +112,41 @@ func TestSingleTcpConnectionClientAndServerWithChunk(t *testing.T) {
 
 		testSendRpc("Client send rpc request", client, false, true, 2)
 		testSendRpc("Client send rpc request(async)", client, true, true, 2)
+	})
+}
+
+// TestSingleTcpConnectionClientWithBadChunkCase
+func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
+	Convey("TestSingleTcpConnectionClientWithBadChunkCase", t, func() {
+		tcpServer := startRpcServer(0)
+		defer tcpServer.Stop()
+
+		conn, client, err := createClient()
+		So(err, ShouldBeNil)
+		So(conn, ShouldNotBeNil)
+		So(client, ShouldNotBeNil)
+		defer client.Close()
+		defer conn.Close()
+
+		serviceName := "EchoService"
+		methodName := "echo"
+		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+
+		name := "(马林)(matthew)(XML)(jhunters)"
+		dm := EchoMessage{name}
+
+		rpcInvocation.SetParameterIn(&dm)
+		rpcInvocation.LogId = proto.Int64(1)
+
+		dataPackage, err := rpcInvocation.GetRequestRpcDataPackage()
+		So(err, ShouldBeNil)
+
+		dataPackage.ChunkInfo(10, 1) // bad chunk data package
+		go func() {
+			client.Session.SendReceive(dataPackage) // send bad chunk data package server will block unitl timeout
+		}()
+		time.Sleep(1 * time.Second)
+		doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, false, false, false, 0)
 	})
 }
 

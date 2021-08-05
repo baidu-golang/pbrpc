@@ -64,6 +64,8 @@ func (rpc *EchoService) Echo(c context.Context, in *EchoMessage) (*EchoMessage, 
 	// return result
 	dm := EchoMessage{ret}
 
+	// time.Sleep(50 * time.Second)
+
 	// bind with err
 	// cc = baidurpc.BindError(cc, errors.New("manule error"))
 	return &dm, context.TODO()
