@@ -19,10 +19,10 @@ jobs:
         go-version: 1.16
 
     - name: Build
-      run: go build -v ./...
+      run: go build -v ./... 
 
     - name: Test
-      run: go test -timeout 100s -v ./... -coverprofile=coverage.txt -covermode=atomic
+      run: go test -timeout 600s -v ./... -coverprofile=coverage.txt -covermode=atomic
 
     - name: CoverageUpload
       run:  bash <(curl -s https://codecov.io/bash)
