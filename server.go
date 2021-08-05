@@ -68,8 +68,8 @@ var (
 	LOG_SERVICE_DUPLICATE   = "[server-004]Service name '%s' or method name '%s' already exist"
 	LOG_SERVER_STARTED_INFO = "[server-100]BaiduRpc server started on '%v'"
 	LOG_INTERNAL_ERROR      = "[server-" + strconv.Itoa(ST_ERROR) + "] unknown internal error:'%s'"
-	LOG_TIMECOUST_INFO      = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
-	LOG_TIMECOUST_INFO2     = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
+	LOG_TIMECOST_INFO       = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
+	LOG_TIMECOST_INFO2      = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
 
 	DEAFULT_IDLE_TIME_OUT_SECONDS = 10
 
@@ -262,6 +262,7 @@ type ErrorContext struct {
 	err error
 }
 
+// TcpServer RPC server base on tcp transport
 type TcpServer struct {
 	serverMeta   *ServerMeta
 	services     map[string]Service
@@ -444,12 +445,12 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 				proto.Unmarshal(requestData, msg)
 			}
 		}
-		// do service here
 
 		now2 := time.Now()
 		ec := &ErrorContext{}
 		// do moinitor
 		s.requestStatus.RequestIn(serviceId, now2, 1)
+		// do service here
 		messageRet, attachment, err := doServiceInvoke(ec, msg, r, service)
 		if ec.err != nil {
 			err = ec.err
@@ -463,7 +464,7 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			return
 		}
 		took2 := TimetookInSeconds(now2.Unix())
-		Infof(LOG_TIMECOUST_INFO2, serviceName, methodName, took2)
+		Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
 
 		if messageRet == nil {
 			r.SetData(nil)
@@ -490,7 +491,7 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 		}
 
 		took := TimetookInSeconds(now)
-		Infof(LOG_TIMECOUST_INFO, serviceName, methodName, took)
+		Infof(LOG_TIMECOST_INFO, serviceName, methodName, took)
 
 	}
 
