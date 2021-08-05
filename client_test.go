@@ -285,7 +285,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		var response *baidurpc.RpcDataPackage
 		var err error
 		if async {
-			response, err = rpcClient.SendRpcRequestWithTimeout(1*time.Second, rpcInvocation, &parameterOut)
+			response, err = rpcClient.SendRpcRequestWithTimeout(2*time.Second, rpcInvocation, &parameterOut)
 			if timeout {
 				So(err, ShouldNotBeNil)
 				return
