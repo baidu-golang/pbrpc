@@ -33,6 +33,8 @@ var (
 	ERR_RESPONSE_NIL          = errors.New("[client-003]No response result, mybe net work break error")
 	LOG_SERVER_REPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
 	LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
+
+	closedTimeOut = time.Duration(0)
 )
 
 const (
@@ -96,6 +98,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c := RpcClient{}
 	c.Session = connection
 
+	// async mode not support pooled connection
 	_, pooled := connection.(*TCPConnectionPool)
 	c.asyncMode = !pooled
 
@@ -104,7 +107,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c.closeChan = make(chan bool, 1)
 	c.requestCallState = make(map[int64]chan *RpcDataPackage)
 
-	if c.asyncMode {
+	if c.asyncMode { // only enabled on async mode
 		go c.startLoopReceive()
 	}
 	return &c, nil
@@ -268,67 +271,14 @@ func (c *RpcClient) doSendReceive(rpcDataPackage *RpcDataPackage, ch <-chan *Rpc
 		// async wait response
 		return <-ch, nil
 	}
+	// not async mode use block request
 	return c.Session.SendReceive(rpcDataPackage)
 
 }
 
 // SendRpcRequest send rpc request to remote server
 func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage proto.Message) (*RpcDataPackage, error) {
-	if c.Session == nil {
-		return nil, ERR_NEED_INIT
-	}
-
-	now := time.Now().UnixNano()
-
-	rpcDataPackage, err := rpcInvocation.GetRequestRpcDataPackage()
-	if err != nil {
-		return nil, err
-	}
-	// set request unique id
-	correlationId := atomic.AddInt64(&c.correlationId, 1)
-	rpcDataPackage.CorrelationId(correlationId)
-
-	var rsp *RpcDataPackage
-	if c.asyncMode {
-		ch := make(chan *RpcDataPackage)
-		c.requestCallState[correlationId] = ch
-
-		rsp, err = c.doSendReceive(rpcDataPackage, ch)
-	} else {
-		rsp, err = c.Session.SendReceive(rpcDataPackage)
-	}
-	if err != nil {
-		errorcode := int32(ST_ERROR)
-		rpcDataPackage.ErrorCode(errorcode)
-		errormsg := err.Error()
-		rpcDataPackage.ErrorText(errormsg)
-		return rpcDataPackage, err
-	}
-
-	r := rsp
-	if r == nil {
-		return nil, ERR_RESPONSE_NIL //to ingore this nil value
-	}
-
-	errorCode := r.GetMeta().GetResponse().GetErrorCode()
-	if errorCode > 0 {
-		errMsg := fmt.Sprintf(LOG_SERVER_REPONSE_ERROR,
-			errorCode, r.GetMeta().GetResponse().GetErrorText())
-		return r, errors.New(errMsg)
-	}
-
-	response := r.GetData()
-	if response != nil {
-		err = proto.Unmarshal(response, responseMessage)
-		if err != nil {
-			return r, err
-		}
-	}
-
-	took := TimetookInSeconds(now)
-	Infof(LOG_CLIENT_TIMECOUST_INFO, *rpcInvocation.ServiceName, *rpcInvocation.MethodName, took)
-
-	return r, nil
+	return c.SendRpcRequestWithTimeout(closedTimeOut, rpcInvocation, responseMessage)
 
 }
 
@@ -353,15 +303,32 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 	if c.asyncMode {
 		ch := make(chan *RpcDataPackage)
 		c.requestCallState[correlationId] = ch
-		go c.asyncRequest(timeout, rpcDataPackage, ch)
-		rsp = <-ch
-	} else {
 
-		ch := make(chan *RpcDataPackage)
-		go c.asyncRequest(timeout, rpcDataPackage, ch)
-		defer close(ch)
-		// wait for message
-		rsp = <-ch
+		if timeout > 0 {
+			go c.asyncRequest(timeout, rpcDataPackage, ch)
+			rsp = <-ch
+		} else {
+			rsp, err = c.doSendReceive(rpcDataPackage, ch)
+		}
+
+	} else {
+		if timeout > 0 {
+			ch := make(chan *RpcDataPackage)
+			go c.asyncRequest(timeout, rpcDataPackage, ch)
+			defer close(ch)
+			// wait for message
+			rsp = <-ch
+		} else {
+			rsp, err = c.Session.SendReceive(rpcDataPackage)
+		}
+	}
+
+	if err != nil {
+		errorcode := int32(ST_ERROR)
+		rpcDataPackage.ErrorCode(errorcode)
+		errormsg := err.Error()
+		rpcDataPackage.ErrorText(errormsg)
+		return rpcDataPackage, err
 	}
 
 	r := rsp
