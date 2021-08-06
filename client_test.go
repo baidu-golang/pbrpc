@@ -40,6 +40,17 @@ func (as *StringMatchAuthService) Authenticate(service, name string, authToken [
 	return strings.Compare(AUTH_TOKEN, string(authToken)) == 0
 }
 
+type AddOneTraceService struct {
+}
+
+// Trace
+func (as *AddOneTraceService) Trace(service, name string, traceInfo *baidurpc.TraceInfo) *baidurpc.TraceInfo {
+	*traceInfo.SpanId++
+	*traceInfo.TraceId++
+	*traceInfo.ParentSpanId++
+	return traceInfo
+}
+
 // TestSingleTcpConnectionClient
 func TestSingleTcpConnectionClient(t *testing.T) {
 	Convey("TestSingleTcpConnectionClient", t, func() {
@@ -230,6 +241,7 @@ func startRpcServer(chunksize uint32) *baidurpc.TcpServer {
 	}
 	rpcServer.RegisterNameWithMethodMapping("EchoService", echoservice, methodMapping)
 
+	rpcServer.SetTraceService(new(AddOneTraceService))
 	rpcServer.Start()
 
 	return rpcServer
@@ -291,6 +303,10 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
 		rpcInvocation.ChunkSize = chunkSize
+		rpcInvocation.TraceId = 10
+		rpcInvocation.SpanId = 11
+		rpcInvocation.ParentSpanId = 12
+		rpcInvocation.RpcRequestMetaExt = map[string]string{"key1": "value1"}
 
 		if withAttachement {
 			rpcInvocation.Attachment = []byte("This is attachment data")
@@ -333,6 +349,10 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 			So(string(response.Attachment), ShouldEqual, "I am a attachementThis is attachment data")
 		}
 
+		So(*response.GetTraceId(), ShouldEqual, rpcInvocation.TraceId+1)
+		So(*response.GetParentSpanId(), ShouldEqual, rpcInvocation.ParentSpanId+1)
+		So(*response.GetParentSpanId(), ShouldEqual, rpcInvocation.ParentSpanId+1)
+		So(response.GetRpcRequestMetaExt()["key1"], ShouldEqual, "value1")
 	})
 
 }

@@ -218,6 +218,60 @@ func (r *RpcDataPackage) GetLogId() int64 {
 	return r.Meta.Request.GetLogId()
 }
 
+func (r *RpcDataPackage) TraceId(traceId int64) *RpcDataPackage {
+	initRequest(r)
+	r.Meta.Request.TraceId = &traceId
+	return r
+}
+
+func (r *RpcDataPackage) GetTraceId() *int64 {
+	initRequest(r)
+	return r.Meta.Request.TraceId
+}
+
+func (r *RpcDataPackage) SpanId(spanId int64) *RpcDataPackage {
+	initRequest(r)
+	r.Meta.Request.SpanId = &spanId
+	return r
+}
+
+func (r *RpcDataPackage) GetSpanId() *int64 {
+	initRequest(r)
+	return r.Meta.Request.SpanId
+}
+
+func (r *RpcDataPackage) ParentSpanId(parentSpanId int64) *RpcDataPackage {
+	initRequest(r)
+	r.Meta.Request.ParentSpanId = &parentSpanId
+	return r
+}
+
+func (r *RpcDataPackage) GetParentSpanId() *int64 {
+	initRequest(r)
+	return r.Meta.Request.ParentSpanId
+}
+
+func (r *RpcDataPackage) RpcRequestMetaExt(ext map[string]string) *RpcDataPackage {
+	initRequest(r)
+	extMap := make([]*RpcRequestMetaExtField, 0)
+	for key, value := range ext {
+		extfield := &RpcRequestMetaExtField{Key: key, Value: value}
+		extMap = append(extMap, extfield)
+	}
+	r.Meta.Request.RpcRequestMetaExt = extMap
+	return r
+}
+
+func (r *RpcDataPackage) GetRpcRequestMetaExt() map[string]string {
+	initRequest(r)
+	ret := make(map[string]string)
+	for _, rr := range r.Meta.Request.RpcRequestMetaExt {
+		ret[rr.Key] = rr.Value
+	}
+
+	return ret
+}
+
 func (r *RpcDataPackage) ErrorCode(errorCode int32) *RpcDataPackage {
 	initResponse(r)
 

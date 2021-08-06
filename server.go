@@ -223,6 +223,18 @@ type AuthService interface {
 	Authenticate(service, name string, authToken []byte) bool
 }
 
+type TraceInfo struct {
+	TraceId           *int64
+	SpanId            *int64
+	ParentSpanId      *int64
+	RpcRequestMetaExt map[string]string
+}
+
+// TraceService to monitor trace info and return trace info back
+type TraceService interface {
+	Trace(service, name string, traceInfo *TraceInfo) *TraceInfo
+}
+
 // DefaultService default implemention for Service interface
 type DefaultService struct {
 	sname    string
@@ -276,6 +288,8 @@ type TcpServer struct {
 	authService AuthService
 
 	protocol *RpcDataPackageProtocol
+
+	traceService TraceService
 }
 
 type serviceMeta struct {
@@ -384,6 +398,11 @@ func (s *TcpServer) SetAuthService(authservice AuthService) {
 	s.authService = authservice
 }
 
+// SetTraceService set trace service
+func (s *TcpServer) SetTraceService(traceService TraceService) {
+	s.traceService = traceService
+}
+
 func (s *TcpServer) handleResponse(session *link.Session) {
 	// after function return must close session
 	defer func() {
@@ -421,6 +440,26 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 					Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
 				}
 				return
+			}
+		}
+
+		if s.traceService != nil {
+			traceInfo := &TraceInfo{TraceId: r.GetTraceId(), SpanId: r.GetSpanId(), ParentSpanId: r.GetParentSpanId()}
+			traceInfo.RpcRequestMetaExt = r.GetRpcRequestMetaExt()
+			traceRetrun := s.traceService.Trace(serviceName, methodName, traceInfo)
+			if traceRetrun != nil {
+				if traceRetrun.TraceId != nil {
+					r.TraceId(*traceRetrun.TraceId)
+				}
+				if traceRetrun.SpanId != nil {
+					r.SpanId(*traceRetrun.SpanId)
+				}
+				if traceRetrun.ParentSpanId != nil {
+					r.ParentSpanId(*traceRetrun.ParentSpanId)
+				}
+				if traceRetrun.RpcRequestMetaExt != nil {
+					r.RpcRequestMetaExt(traceRetrun.RpcRequestMetaExt)
+				}
 			}
 		}
 

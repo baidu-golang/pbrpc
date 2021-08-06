@@ -94,6 +94,58 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
 
    至此RPC已经开发完成，运行上面代码，就可以发布完成.
 
+#### 开发启验证功能
+
+实现 AuthService 接口
+
+```go
+type StringMatchAuthService struct {
+}
+
+// Authenticate
+func (as *StringMatchAuthService) Authenticate(service, name string, authToken []byte) bool {
+	if authToken == nil {
+		return false
+	}
+	return strings.Compare(AUTH_TOKEN, string(authToken)) == 0
+}
+
+```
+设置到service对象
+```go
+
+// ...
+rpcServer := baidurpc.NewTpcServer(&serverMeta)
+rpcServer.SetAuthService(new(StringMatchAuthService))
+
+```
+
+#### 设置trace功能
+
+实现 TraceService 接口
+
+```go
+type AddOneTraceService struct {
+}
+
+// Trace
+func (as *AddOneTraceService) Trace(service, name string, traceInfo *baidurpc.TraceInfo) *baidurpc.TraceInfo {
+	*traceInfo.SpanId++
+	*traceInfo.TraceId++
+	*traceInfo.ParentSpanId++
+	return traceInfo
+}
+
+```
+
+设置到service对象
+```go
+
+// ...
+rpcServer := baidurpc.NewTpcServer(&serverMeta)
+rpcServer.SetTraceService(new(AddOneTraceService))
+
+```
 
 ### 开发RPC客户端
 
@@ -187,6 +239,29 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
     // 调用时，设置超时功能
 	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
 	// 如果发生超时， 返回的错误码为 62
+
+```
+
+### 设置Trace功能
+```go
+    // 调用RPC
+	serviceName := "echoService"
+	methodName := "echo"
+	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
+	// 设置trace信息
+	rpcInvocation.TraceId = 10
+	rpcInvocation.SpanId = 11
+	rpcInvocation.ParentSpanId = 12
+	rpcInvocation.RpcRequestMetaExt = map[string]string{"key1": "value1"}
+    // 调用时，设置超时功能
+	response, err := rpcClient.SendRpcRequestWithTimeout(100*time.Millisecond, rpcInvocation, &parameterOut)
+	// 如果发生超时， 返回的错误码为 62
+
+	// 获取服务端返回的trace信息
+	response.GetTraceId()
+	response.GetParentSpanId()
+	response.GetParentSpanId()
+	response.GetRpcRequestMetaExt()
 
 ```
 

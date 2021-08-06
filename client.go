@@ -78,14 +78,18 @@ func (u *URL) SetPort(port *int) *URL {
 
 // RpcInvocation define rpc invocation
 type RpcInvocation struct {
-	ServiceName      *string
-	MethodName       *string
-	ParameterIn      *proto.Message
-	Attachment       []byte
-	LogId            *int64
-	CompressType     *int32
-	AuthenticateData []byte
-	ChunkSize        uint32
+	ServiceName       *string
+	MethodName        *string
+	ParameterIn       *proto.Message
+	Attachment        []byte
+	LogId             *int64
+	CompressType      *int32
+	AuthenticateData  []byte
+	ChunkSize         uint32
+	TraceId           int64
+	SpanId            int64
+	ParentSpanId      int64
+	RpcRequestMetaExt map[string]string
 }
 
 // NewRpcCient new rpc client
@@ -145,6 +149,10 @@ func (r *RpcInvocation) GetRequestRpcDataPackage() (*RpcDataPackage, error) {
 	rpcDataPackage.MagicCode(MAGIC_CODE)
 	rpcDataPackage.AuthenticationData(r.AuthenticateData)
 	rpcDataPackage.chunkSize = r.ChunkSize
+	rpcDataPackage.TraceId(r.TraceId)
+	rpcDataPackage.SpanId(r.SpanId)
+	rpcDataPackage.ParentSpanId(r.ParentSpanId)
+	rpcDataPackage.RpcRequestMetaExt(r.RpcRequestMetaExt)
 	if r.CompressType != nil {
 		rpcDataPackage.CompressType(*r.CompressType)
 	}
