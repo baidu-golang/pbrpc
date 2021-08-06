@@ -357,3 +357,44 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 	return r, nil
 
 }
+
+// RpcResult Rpc response result from client request api under asynchronous way
+type RpcResult struct {
+	rpcData *RpcDataPackage
+	err     error
+	message proto.Message
+}
+
+func (rr *RpcResult) Get() proto.Message {
+	return rr.message
+}
+
+func (rr *RpcResult) GetRpcDataPackage() *RpcDataPackage {
+	return rr.rpcData
+}
+
+func (rr *RpcResult) GetErr() error {
+	return rr.err
+}
+
+// SendRpcRequestAsyc send rpc request to remote server in asynchronous way
+func (c *RpcClient) SendRpcRequestAsyc(rpcInvocation *RpcInvocation, responseMessage proto.Message) <-chan *RpcResult {
+	ch := make(chan *RpcResult, 1)
+
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				if err, ok := p.(error); ok {
+					r := &RpcResult{nil, err, responseMessage}
+					ch <- r
+				}
+			}
+		}()
+
+		resp, err := c.SendRpcRequest(rpcInvocation, responseMessage)
+		result := &RpcResult{resp, err, responseMessage}
+		ch <- result
+	}()
+
+	return ch
+}

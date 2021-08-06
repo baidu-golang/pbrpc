@@ -53,8 +53,8 @@ func TestSingleTcpConnectionClient(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, false, false, 0)
-		testSendRpc("Client send rpc request(async)", client, true, false, 0)
+		testSendRpc("Client send rpc request", client, false, false, 0, false)
+		testSendRpc("Client send rpc request(async)", client, true, false, 0, false)
 	})
 }
 
@@ -72,8 +72,8 @@ func TestSingleTcpConnectionClientWithAuthenticate(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, false, true, 0)
-		testSendRpc("Client send rpc request(async)", client, true, true, 0)
+		testSendRpc("Client send rpc request", client, false, true, 0, false)
+		testSendRpc("Client send rpc request(async)", client, true, true, 0, false)
 	})
 }
 
@@ -91,8 +91,8 @@ func TestSingleTcpConnectionClientWithChunk(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, false, true, 20)
-		testSendRpc("Client send rpc request(async)", client, true, true, 20)
+		testSendRpc("Client send rpc request", client, false, true, 20, false)
+		testSendRpc("Client send rpc request(async)", client, true, true, 20, false)
 	})
 }
 
@@ -110,8 +110,8 @@ func TestSingleTcpConnectionClientAndServerWithChunk(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, false, true, 20)
-		testSendRpc("Client send rpc request(async)", client, true, true, 20)
+		testSendRpc("Client send rpc request", client, false, true, 20, false)
+		testSendRpc("Client send rpc request(async)", client, true, true, 20, false)
 	})
 }
 
@@ -146,7 +146,7 @@ func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
 			client.Session.SendReceive(dataPackage) // send bad chunk data package server will block unitl timeout
 		}()
 		time.Sleep(1 * time.Second)
-		doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, false, false, false, 0)
+		doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, false, false, false, 0, false)
 	})
 }
 
@@ -163,27 +163,46 @@ func TestPooledTcpConnectionClient(t *testing.T) {
 		defer client.Close()
 		defer conn.Close()
 
-		testSendRpc("Client send rpc request", client, false, true, 0)
-		testSendRpc("Client send rpc request(async)", client, true, true, 0)
+		testSendRpc("Client send rpc request", client, false, true, 0, false)
+		testSendRpc("Client send rpc request(async)", client, true, true, 0, false)
 	})
 }
 
-func testSendRpc(testName string, client *baidurpc.RpcClient, async, auth bool, chunksize uint32) {
+// TestSingleTcpConnectionClientByAsync
+func TestSingleTcpConnectionClientByAsync(t *testing.T) {
+	Convey("TestSingleTcpConnectionClientByAsync", t, func() {
+		tcpServer := startRpcServer(0)
+		tcpServer.SetAuthService(new(StringMatchAuthService))
+		defer tcpServer.Stop()
+
+		conn, client, err := createClient()
+		So(err, ShouldBeNil)
+		So(conn, ShouldNotBeNil)
+		So(client, ShouldNotBeNil)
+		defer client.Close()
+		defer conn.Close()
+
+		testSendRpc("Client send rpc request", client, false, true, 0, true)
+		testSendRpc("Client send rpc request(async)", client, true, true, 0, true)
+	})
+}
+
+func testSendRpc(testName string, client *baidurpc.RpcClient, timeout, auth bool, chunksize uint32, async bool) {
 	Convey(testName, func() {
 		Convey("Test send request EchoService!echo", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, async, false, auth, chunksize)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echo", false, false, timeout, false, auth, chunksize, async)
 		})
 		Convey("Test send request EchoService!echoWithAttchement", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithAttchement", true, false, async, false, auth, chunksize)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithAttchement", true, false, timeout, false, auth, chunksize, async)
 		})
 		Convey("Test send request EchoService!echoWithCustomizedError", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithCustomizedError", false, true, async, false, auth, chunksize)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithCustomizedError", false, true, timeout, false, auth, chunksize, async)
 		})
 		Convey("Test send request EchoService!echoWithoutContext", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithoutContext", false, false, async, false, auth, chunksize)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "echoWithoutContext", false, false, timeout, false, auth, chunksize, async)
 		})
 		Convey("Test send request EchoService!EchoSlowTest", func() {
-			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "EchoSlowTest", false, false, async, true, auth, chunksize)
+			doSimpleRPCInvokeWithSignatureWithConvey(client, "EchoService", "EchoSlowTest", false, false, timeout, true, auth, chunksize, async)
 		})
 	})
 }
@@ -262,7 +281,7 @@ func createPooledConnectionClient() (baidurpc.Connection, *baidurpc.RpcClient, e
 
 // doSimpleRPCInvokeWithSignatureWithConvey  send rpc request
 func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, serviceName, methodName string,
-	withAttachement, withCustomErr, async, timeout, auth bool, chunkSize uint32) {
+	withAttachement, withCustomErr, timeout, timeoutCheck, auth bool, chunkSize uint32, async bool) {
 	Convey("Test Client send rpc  request", func() {
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
@@ -284,14 +303,21 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		parameterOut := EchoMessage{}
 		var response *baidurpc.RpcDataPackage
 		var err error
-		if async {
+		if timeout {
 			response, err = rpcClient.SendRpcRequestWithTimeout(1*time.Second, rpcInvocation, &parameterOut)
-			if timeout {
+			if timeoutCheck {
 				So(err, ShouldNotBeNil)
 				return
 			}
 		} else {
-			response, err = rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
+			if async {
+				ch := rpcClient.SendRpcRequestAsyc(rpcInvocation, &parameterOut)
+				rpcResult := <-ch
+				response = rpcResult.GetRpcDataPackage()
+				err = rpcResult.GetErr()
+			} else {
+				response, err = rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
+			}
 		}
 		if withCustomErr {
 			So(err, ShouldNotBeNil)
