@@ -1,4 +1,11 @@
-### Demo示例
+<h1 align="center">baidurpc</h1>
+
+<p align="center">
+baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。
+本版本基于golang实现.完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+</p>
+
+### 更多特性使用介绍
 
 #### 开发RPC服务端
 
@@ -29,8 +36,8 @@
 
 	// Echo  test publish method with return type has context argument
 	// 方法要求
-	// 参数个数必须为2个， 第一个类型必须为 context.Context 
-	// 第二个类型必须是实现 proto.Message接口
+	// 参数个数必须为1个或2个， 第一个类型必须为 context.Context 
+	// 第二个类型必须是实现 proto.Message接口(如果是无参，可以省略)
 	// 返回个数可以为1个或2个  第一个类型必须是实现 proto.Message接口 
 	// 第2个参数为可选。 当使用时，必须为 context.Context类型
 	func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
@@ -50,6 +57,12 @@
 		return &dm, baidurpc.BindAttachement(context.Background(), []byte("hello")) // return with attachement
 	}
    ```
+
+以下都是合法的定义方法
+1. Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context)
+2. Echo(c context.Context) (*DataMessage, context.Context)
+3. Echo(c context.Context) (*DataMessage)
+
 
 2. 指定发布端口，把EchoService发布成RPC服务
 
@@ -104,6 +117,7 @@
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+	defer rpcClient.Close()
     // 调用RPC
 	serviceName := "echoService"
 	methodName := "echo"

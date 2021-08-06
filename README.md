@@ -1,9 +1,11 @@
-<!--
- * @Author: Malin Xie
- * @Description: 
- * @Date: 2021-07-24 16:54:14
--->
-# baidurpc
+
+<h1 align="center">baidurpc</h1>
+
+<p align="center">
+baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。
+本版本基于golang实现.完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+</p>
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/baidu-golang/pbrpc?style=flat-square)](https://goreportcard.com/report/github.com/baidu-golang/pbrpc)
 [![Go](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml/badge.svg)](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/baidu-golang/pbrpc/branch/master/graph/badge.svg?token=EY9Z88E82P)](https://codecov.io/gh/baidu-golang/pbrpc)
@@ -12,10 +14,7 @@
 [![LICENSE](https://img.shields.io/github/license/baidu-golang/pbrpc.svg?style=flat-square)](https://github.com/baidu-golang/pbrpc/blob/master/LICENSE)
 
 
-baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它以Protobuf作为基本的数据交换格式。
-本版本基于golang实现.完全兼容jprotobuf-rpc-socket: https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
-
-features:
+### features:
 
 - 内置连接池，具备更高的性能，低延迟 QPS: 5w+
 - 支持自动重连功能[Done]
@@ -37,7 +36,10 @@ $ go get github.com/baidu-golang/pbrpc
 ```
 
 ### 使用说明与Demo 
- [Demo开发示例](./Demo.md)
 
+ [Quick Start(服务发布)](./docs/quickstart_server.md) <br>
+ [Quick Start(客户端调用)](./docs/quickstart_client.md) <br>
+ [更多特性使用说明](./docs/Demo.md)<br>
+ [Demo开发示例代码](./example)<br>
 ## License
 brpc is [Apache 2.0 licensed](./LICENSE).
