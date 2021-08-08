@@ -67,8 +67,16 @@ message Request {
     required string service_name = 1;
     required string method_name = 2;
     optional int64 log_id = 3;
+	optional int64 traceId=4;
+	optional int64 spanId=5;
+	optional int64 parentSpanId=6;
+	repeat RpcRequestMetaExtField extFields = 7;
 };
 
+message RpcRequestMetaExtField {
+	optional string key = 1;
+	optional string value = 2;
+}
 message Response {
     optional int32 error_code = 1;
     optional string error_text = 2;
