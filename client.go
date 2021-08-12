@@ -309,7 +309,7 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 
 	var rsp *RpcDataPackage
 	if c.asyncMode {
-		ch := make(chan *RpcDataPackage)
+		ch := make(chan *RpcDataPackage, 1)
 		c.requestCallState[correlationId] = ch
 
 		if timeout > 0 {
@@ -321,7 +321,7 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 
 	} else {
 		if timeout > 0 {
-			ch := make(chan *RpcDataPackage)
+			ch := make(chan *RpcDataPackage, 1)
 			go c.asyncRequest(timeout, rpcDataPackage, ch)
 			defer close(ch)
 			// wait for message
