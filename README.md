@@ -1,3 +1,8 @@
+<!--
+ * @Author: Malin Xie
+ * @Description: 
+ * @Date: 2021-07-24 16:54:14
+-->
 
 <h1 align="center">baidurpc</h1>
 
@@ -26,6 +31,7 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
 - 灵活的超时设置功能[Done]
 - 分包chunk支持，针对大数据包支持拆分包的发送的功能[Done]
 - 支持 Web管理能力以及内置能力[Done] [查看](https://github.com/jhunters/brpcweb)
+- 支持同步发布为Http JSON协议[Doing]
   ​
 ### Installing 
 
