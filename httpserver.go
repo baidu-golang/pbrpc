@@ -51,14 +51,14 @@ func (h *HttpServer) serverHttp(l net.Listener) {
 func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	if !strings.HasPrefix(path, HttpRpcPath) {
-		data := toJson(errResponse(fmt.Sprintf("no service or method found by path='%s'", path)))
+		data := toJson(errResponse(ST_SERVICE_NOTFOUND, fmt.Sprintf("no service or method found by path='%s'", path)))
 		w.Write(data)
 		return
 	}
 
 	serviceName, method, err := getServiceMethod(path)
 	if err != nil {
-		data := toJson(errResponse(err.Error()))
+		data := toJson(errResponse(ST_ERROR, err.Error()))
 		w.Write(data)
 		return
 	}
@@ -67,7 +67,7 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	service, ok := h.s.services[sid]
 	if !ok {
-		data := toJson(errResponse(fmt.Sprintf("no service or method found by path='%s'", path)))
+		data := toJson(errResponse(ST_SERVICE_NOTFOUND, fmt.Sprintf("no service or method found by path='%s'", path)))
 		w.Write(data)
 		return
 	}
@@ -75,7 +75,7 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// get json data
 	jsonData, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		data := toJson(errResponse(err.Error()))
+		data := toJson(errResponse(ST_ERROR, err.Error()))
 		w.Write(data)
 		return
 	}
@@ -83,7 +83,7 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	paramIn := service.NewParameter()
 	err = json.Unmarshal(jsonData, paramIn)
 	if err != nil {
-		data := toJson(errResponse(err.Error()))
+		data := toJson(errResponse(ST_ERROR, err.Error()))
 		w.Write(data)
 		return
 	}
@@ -97,9 +97,10 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		logid = &newId
 	}
 
-	ret, _, err := service.DoService(paramIn, nil, logid)
+	ec := &ErrorContext{}
+	ret, _, err := h.s.doServiceInvoke(ec, paramIn, serviceName, method, nil, *logid, service)
 	if err != nil {
-		data := toJson(errResponse(err.Error()))
+		data := toJson(errResponse(ST_ERROR, err.Error()))
 		w.Write(data)
 		return
 	}
@@ -107,7 +108,7 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	resData := &ResponseData{ErrNo: 0, Data: ret}
 	data, err := json.Marshal(resData)
 	if err != nil {
-		data := toJson(errResponse(err.Error()))
+		data := toJson(errResponse(ST_ERROR, err.Error()))
 		w.Write(data)
 		return
 	}
@@ -116,8 +117,8 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func errResponse(message string) *ResponseData {
-	return &ResponseData{ErrNo: -1, Message: message}
+func errResponse(errno int, message string) *ResponseData {
+	return &ResponseData{ErrNo: errno, Message: message}
 }
 
 func toJson(o interface{}) []byte {

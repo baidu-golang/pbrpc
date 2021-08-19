@@ -523,10 +523,9 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 
 		now2 := time.Now()
 		ec := &ErrorContext{}
-		// do moinitor
-		s.requestStatus.RequestIn(serviceId, now2, 1)
+
 		// do service here
-		messageRet, attachment, err := doServiceInvoke(ec, msg, r, service)
+		messageRet, attachment, err := s.doServiceInvoke(ec, msg, *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, r.GetAttachment(), r.GetLogId(), service)
 		if ec.err != nil {
 			err = ec.err
 		}
@@ -572,16 +571,18 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 
 }
 
-func doServiceInvoke(c *ErrorContext, msg proto.Message, r *RpcDataPackage, service Service) (proto.Message, []byte, error) {
+func (s *TcpServer) doServiceInvoke(c *ErrorContext, msg proto.Message, sname, method string, attachment []byte, logid int64, service Service) (proto.Message, []byte, error) {
 	var err error
 	defer func() {
 		if p := recover(); p != nil {
-			err = fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, p)
+			err = fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", sname, method, p)
 			c.err = err
 			log.Println(err.Error())
 		}
 	}()
-	messageRet, attachment, err := service.DoService(msg, r.GetAttachment(), proto.Int64(int64(r.GetLogId())))
+	// do moinitor
+	s.requestStatus.RequestIn(GetServiceId(sname, method), time.Now(), 1)
+	messageRet, attachment, err := service.DoService(msg, attachment, proto.Int64(logid))
 	return messageRet, attachment, err
 }
 
