@@ -70,13 +70,13 @@ type CustomListenerSelector struct {
 }
 
 // NewCustomListenerSelector new a CustomListenerSelector
-func NewCustomListenerSelector(host string, port int, headsize uint8, matchMode int) (*CustomListenerSelector, error) {
-	return NewCustomListenerSelectorByAddr(host+":"+strconv.Itoa(port), headsize, matchMode)
+func NewCustomListenerSelector(network, host string, port int, headsize uint8, matchMode int) (*CustomListenerSelector, error) {
+	return NewCustomListenerSelectorByAddr(network, host+":"+strconv.Itoa(port), headsize, matchMode)
 }
 
 // NewCustomListenerSelectorByAddr new a CustomListenerSelector by address string
-func NewCustomListenerSelectorByAddr(server string, headsize uint8, matchMode int) (*CustomListenerSelector, error) {
-	listener, err := net.Listen("tcp", server)
+func NewCustomListenerSelectorByAddr(network, server string, headsize uint8, matchMode int) (*CustomListenerSelector, error) {
+	listener, err := net.Listen(network, server)
 	if err != nil {
 		return nil, err
 	}
@@ -113,13 +113,18 @@ func (server *CustomListenerSelector) RegisterDefaultListener() net.Listener {
 	return server.defaultListener
 }
 
+// Serve do listening from net trasport
 func (server *CustomListenerSelector) Serve() error {
 	for {
 		conn, err := server.listenerProxy.Accept()
 		if err != nil {
+			// if met error broadcast to all listeners
 			netinfo := NetInfo{conn, err}
 			for _, server := range server.listeners {
-				server.sessionChan <- netinfo
+				s := server
+				go func() {
+					s.sessionChan <- netinfo
+				}()
 			}
 			return err
 		}
@@ -158,6 +163,19 @@ func (server *CustomListenerSelector) Serve() error {
 
 	}
 
+}
+
+// Close do close all listeners
+func (server *CustomListenerSelector) Close() error {
+	var errRet error
+	for _, server := range server.listeners {
+		err := server.Close()
+		if err != nil {
+			errRet = err
+		}
+	}
+
+	return errRet
 }
 
 //  net.Conn  proxy

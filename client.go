@@ -192,7 +192,7 @@ func (c *RpcClient) startLoopReceive() {
 		default:
 			dataPackage, err := c.safeReceive()
 			if err != nil {
-				// if met error, wait some time to retry
+				// if met error, wait some time to retry or call client close method to close loop if met net error
 				time.Sleep(200 * time.Millisecond)
 			}
 
