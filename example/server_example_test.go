@@ -29,7 +29,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
+	"net/rpc"
 	"reflect"
 	"strings"
 	"time"
@@ -53,6 +55,26 @@ func ExampleRpcServer() {
 	mapping["Echo"] = "echo"
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
 
+	rpcServer.Start()
+	defer rpcServer.Stop()
+
+}
+
+func ExampleRpcServerWithHttp() {
+	port := 1031
+
+	serverMeta := baidurpc.ServerMeta{}
+	serverMeta.QPSExpireInSecs = 600 // set qps monitor expire time
+	serverMeta.Port = &port
+	rpcServer := baidurpc.NewTpcServer(&serverMeta)
+
+	echoService := new(EchoService)
+
+	mapping := make(map[string]string)
+	mapping["Echo"] = "echo"
+	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
+
+	rpcServer.EnableHttp()
 	rpcServer.Start()
 	defer rpcServer.Stop()
 
@@ -146,4 +168,30 @@ func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, 
 	// bind with err
 	// cc = baidurpc.BindError(cc, errors.New("manule error"))
 	return &dm, cc
+}
+
+type HelloService struct{}
+
+func (p *HelloService) Hello(request string, reply *string) error {
+	*reply = "hello:" + request
+	return nil
+}
+
+func DoRPCServer() {
+	fmt.Println("server starting...")
+	rpc.RegisterName("HelloService", new(HelloService)) // 注册RPC， RPC名称为 HelloService
+
+	listener, err := net.Listen("tcp", ":1234")
+	if err != nil {
+		log.Fatal("ListenTCP error:", err)
+	}
+
+	conn, err := listener.Accept()
+	if err != nil {
+		log.Fatal("Accept error:", err)
+	}
+
+	rpc.ServeConn(conn) // 绑定tcp服务链接
+
+	fmt.Println("server started.")
 }

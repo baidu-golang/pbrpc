@@ -31,6 +31,7 @@ import (
 
 	"github.com/funny/link"
 
+	"github.com/baidu-golang/pbrpc/nettool"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -195,6 +196,11 @@ type attachement struct {
 }
 
 var attachementKey attachement
+
+type logidkey struct {
+}
+
+var logidKey logidkey
 var errorKey struct{}
 
 type RPCFN func(msg proto.Message, attachment []byte, logId *int64) (proto.Message, []byte, error)
@@ -290,6 +296,10 @@ type TcpServer struct {
 	protocol *RpcDataPackageProtocol
 
 	traceService TraceService
+
+	enableHttp bool
+
+	selector *nettool.CustomListenerSelector
 }
 
 type serviceMeta struct {
@@ -335,7 +345,28 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 	if err != nil {
 		return err
 	}
-	server := link.NewServer(l, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
+
+	selector, err := nettool.NewCustomListenerSelectorByListener(l, 4, nettool.Equal_Mode)
+	if err != nil {
+		return err
+	}
+
+	rpcServerListener, err := selector.RegisterListener(MAGIC_CODE) //"PRPC"
+	if err != nil {
+		return err
+	}
+
+	if s.enableHttp {
+		httpServer := &HttpServer{s: s}
+		log.Println("Enabled with http server mode.")
+		httpServerListener := selector.RegisterDefaultListener()
+		httpServer.serverHttp(httpServerListener)
+	}
+
+	// start customize listener
+	go selector.Serve()
+
+	server := link.NewServer(rpcServerListener, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
 	s.protocol = protocol
 	s.server = server
 	go server.Serve()
@@ -391,6 +422,11 @@ func (s *TcpServer) StartAndBlock() error {
 	<-c
 
 	return nil
+}
+
+// EnableHttp
+func (s *TcpServer) EnableHttp() {
+	s.enableHttp = true
 }
 
 // SetAuthService set authenticate service
@@ -564,6 +600,9 @@ func GetServiceId(serviceName, methodName string) string {
 func (s *TcpServer) Stop() error {
 	s.stop = true
 	s.started = false
+	if s.selector != nil {
+		s.selector.Close()
+	}
 	if s.server != nil {
 		s.server.Stop()
 	}
@@ -679,8 +718,13 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 			// process context value
 			c := context.Background()
 			if attachment != nil {
-				c = context.WithValue(c, attachementKey, attachment)
+				c = BindAttachement(c, attachment)
 			}
+
+			if logId != nil {
+				c = BindLogId(c, *logId)
+			}
+
 			contextValue := reflect.ValueOf(c)
 
 			var attachmentRet []byte = nil
@@ -846,6 +890,14 @@ func (s *TcpServer) RegisterRpc(sname, mname string, callback RPCFN, inType prot
 	return s.registerServiceType(service)
 }
 
+func LogID(context context.Context) int64 {
+	v := context.Value(logidKey)
+	if v == nil {
+		return -1
+	}
+	return v.(int64)
+}
+
 // Attachment utility function to get attachemnt from context
 func Attachement(context context.Context) []byte {
 
@@ -864,6 +916,11 @@ func BindAttachement(c context.Context, attachement interface{}) context.Context
 // BindError add error value to the context
 func BindError(c context.Context, err error) context.Context {
 	return context.WithValue(c, errorKey, err)
+}
+
+// BindError add error value to the context
+func BindLogId(c context.Context, logid int64) context.Context {
+	return context.WithValue(c, logidKey, logid)
 }
 
 // BindError add error value to the context
