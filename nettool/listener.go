@@ -119,7 +119,7 @@ func (server *CustomListenerSelector) Serve() error {
 	for {
 		conn, err := server.listenerProxy.Accept()
 		if err != nil {
-			log.Fatal("CustomListenerSelector started failed.", err)
+			log.Println("CustomListenerSelector started failed.", err)
 			// if met error broadcast to all listeners
 			netinfo := NetInfo{conn, err}
 			for _, server := range server.listeners {
