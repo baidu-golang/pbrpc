@@ -227,8 +227,12 @@ func createRpcServerWithChunkSize(port int, chunksize uint32) *baidurpc.TcpServe
 	return rpcServer
 }
 
-// startRpcServer start rpc server and register echo service as default rpc service
 func startRpcServer(chunksize uint32) *baidurpc.TcpServer {
+	return startRpcServerWithHttpMode(chunksize, false)
+}
+
+// startRpcServer start rpc server and register echo service as default rpc service
+func startRpcServerWithHttpMode(chunksize uint32, httpMode bool) *baidurpc.TcpServer {
 
 	rpcServer := createRpcServerWithChunkSize(PORT_1, chunksize)
 
@@ -242,6 +246,9 @@ func startRpcServer(chunksize uint32) *baidurpc.TcpServer {
 	rpcServer.RegisterNameWithMethodMapping("EchoService", echoservice, methodMapping)
 
 	rpcServer.SetTraceService(new(AddOneTraceService))
+	if httpMode {
+		rpcServer.EnableHttp()
+	}
 	rpcServer.Start()
 
 	return rpcServer
