@@ -74,6 +74,7 @@ func ExampleRpcServerWithHttp() {
 	mapping["Echo"] = "echo"
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
 
+	// start http rpc mode
 	rpcServer.EnableHttp()
 	rpcServer.Start()
 	defer rpcServer.Stop()

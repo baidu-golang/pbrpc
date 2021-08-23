@@ -31,7 +31,7 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
 - 灵活的超时设置功能[Done]
 - 分包chunk支持，针对大数据包支持拆分包的发送的功能[Done]
 - 支持 Web管理能力以及内置能力[Done] [查看](https://github.com/jhunters/brpcweb)
-- 支持同步发布为Http JSON协议[Doing]
+- 支持同步发布为Http JSON协议[Done] [>= v1.2.0]
   ​
 ### Installing 
 
@@ -45,6 +45,7 @@ $ go get github.com/baidu-golang/pbrpc
 
  [Quick Start(服务发布)](./docs/quickstart_server.md) <br>
  [Quick Start(客户端调用)](./docs/quickstart_client.md) <br>
+ [同步发布http rpc服务](./docs/httprpc.md) <br>
  [更多特性使用说明](./docs/Demo.md)<br>
  [Demo开发示例代码](./example)<br>
 ## License
