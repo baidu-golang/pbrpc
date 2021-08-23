@@ -474,8 +474,9 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 				err = session.Send(r)
 				if err != nil {
 					Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+					return
 				}
-				return
+				continue
 			}
 		}
 
@@ -508,8 +509,9 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			err = session.Send(r)
 			if err != nil {
 				Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+				return
 			}
-			return
+			continue
 		}
 
 		var msg proto.Message
@@ -534,8 +536,9 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			err = session.Send(r)
 			if err != nil {
 				Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+				return
 			}
-			return
+			continue
 		}
 		took2 := TimetookInSeconds(now2.Unix())
 		Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
@@ -549,8 +552,9 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 				err = session.Send(r)
 				if err != nil {
 					Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+					return
 				}
-				return
+				continue
 			}
 
 			r.SetData(d)
