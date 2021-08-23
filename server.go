@@ -447,10 +447,8 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 
 	for {
 
-		now := time.Now().UnixNano()
-
 		req, err := session.Receive()
-		if err != nil {
+		if err != nil { // or error connection with bad request
 			Errorf(LOG_INTERNAL_ERROR, err.Error())
 			return
 		}
@@ -464,115 +462,127 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			return // convert error maybe type mismatch
 		}
 
-		serviceName := r.GetMeta().GetRequest().GetServiceName()
-		methodName := r.GetMeta().GetRequest().GetMethodName()
+		go s.doHandleProcess(session, r)
+	}
 
-		if s.authService != nil {
-			authOk := s.authService.Authenticate(serviceName, methodName, r.Meta.AuthenticationData)
-			if !authOk {
-				wrapResponse(r, ST_AUTH_ERROR, errAuth.Error())
-				err = session.Send(r)
-				if err != nil {
-					Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
-					return
-				}
-				continue
-			}
+}
+
+func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) error {
+	now := time.Now().UnixNano()
+	serviceName := r.GetMeta().GetRequest().GetServiceName()
+	methodName := r.GetMeta().GetRequest().GetMethodName()
+	defer func() {
+		if p := recover(); p != nil {
+			err := fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", serviceName, methodName, p)
+			log.Println(err.Error())
 		}
+	}()
 
-		if s.traceService != nil {
-			traceInfo := &TraceInfo{TraceId: r.GetTraceId(), SpanId: r.GetSpanId(), ParentSpanId: r.GetParentSpanId()}
-			traceInfo.RpcRequestMetaExt = r.GetRpcRequestMetaExt()
-			traceRetrun := s.traceService.Trace(serviceName, methodName, traceInfo)
-			if traceRetrun != nil {
-				if traceRetrun.TraceId != nil {
-					r.TraceId(*traceRetrun.TraceId)
-				}
-				if traceRetrun.SpanId != nil {
-					r.SpanId(*traceRetrun.SpanId)
-				}
-				if traceRetrun.ParentSpanId != nil {
-					r.ParentSpanId(*traceRetrun.ParentSpanId)
-				}
-				if traceRetrun.RpcRequestMetaExt != nil {
-					r.RpcRequestMetaExt(traceRetrun.RpcRequestMetaExt)
-				}
-			}
-		}
-
-		serviceId := GetServiceId(serviceName, methodName)
-
-		service := s.services[serviceId]
-		if service == nil {
-			wrapResponse(r, ST_SERVICE_NOTFOUND, fmt.Sprintf(LOG_SERVICE_NOTFOUND, serviceName, methodName))
-
-			err = session.Send(r)
+	if s.authService != nil {
+		authOk := s.authService.Authenticate(serviceName, methodName, r.Meta.AuthenticationData)
+		if !authOk {
+			wrapResponse(r, ST_AUTH_ERROR, errAuth.Error())
+			err := session.Send(r)
 			if err != nil {
 				Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
-				return
+				return err
 			}
-			continue
+			return nil
 		}
+	}
 
-		var msg proto.Message
-		requestData := r.GetData()
-		if requestData != nil {
-			msg = service.NewParameter()
-			if msg != nil {
-				proto.Unmarshal(requestData, msg)
+	if s.traceService != nil {
+		traceInfo := &TraceInfo{TraceId: r.GetTraceId(), SpanId: r.GetSpanId(), ParentSpanId: r.GetParentSpanId()}
+		traceInfo.RpcRequestMetaExt = r.GetRpcRequestMetaExt()
+		traceRetrun := s.traceService.Trace(serviceName, methodName, traceInfo)
+		if traceRetrun != nil {
+			if traceRetrun.TraceId != nil {
+				r.TraceId(*traceRetrun.TraceId)
+			}
+			if traceRetrun.SpanId != nil {
+				r.SpanId(*traceRetrun.SpanId)
+			}
+			if traceRetrun.ParentSpanId != nil {
+				r.ParentSpanId(*traceRetrun.ParentSpanId)
+			}
+			if traceRetrun.RpcRequestMetaExt != nil {
+				r.RpcRequestMetaExt(traceRetrun.RpcRequestMetaExt)
 			}
 		}
+	}
 
-		now2 := time.Now()
-		ec := &ErrorContext{}
+	serviceId := GetServiceId(serviceName, methodName)
 
-		// do service here
-		messageRet, attachment, err := s.doServiceInvoke(ec, msg, *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, r.GetAttachment(), r.GetLogId(), service)
-		if ec.err != nil {
-			err = ec.err
+	service := s.services[serviceId]
+	if service == nil {
+		wrapResponse(r, ST_SERVICE_NOTFOUND, fmt.Sprintf(LOG_SERVICE_NOTFOUND, serviceName, methodName))
+
+		err := session.Send(r)
+		if err != nil {
+			Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+			return err
 		}
+		return nil
+	}
+
+	var msg proto.Message
+	requestData := r.GetData()
+	if requestData != nil {
+		msg = service.NewParameter()
+		if msg != nil {
+			proto.Unmarshal(requestData, msg)
+		}
+	}
+
+	now2 := time.Now()
+	ec := &ErrorContext{}
+
+	// do service here
+	messageRet, attachment, err := s.doServiceInvoke(ec, msg, *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, r.GetAttachment(), r.GetLogId(), service)
+	if ec.err != nil {
+		err = ec.err
+	}
+	if err != nil {
+		wrapResponse(r, ST_ERROR, err.Error())
+		err := session.Send(r)
+		if err != nil {
+			Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+			return err
+		}
+		return nil
+	}
+	took2 := TimetookInSeconds(now2.Unix())
+	Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
+
+	if messageRet == nil {
+		r.SetData(nil)
+	} else {
+		d, err := proto.Marshal(messageRet)
 		if err != nil {
 			wrapResponse(r, ST_ERROR, err.Error())
 			err = session.Send(r)
 			if err != nil {
 				Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
-				return
+				return err
 			}
-			continue
-		}
-		took2 := TimetookInSeconds(now2.Unix())
-		Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
-
-		if messageRet == nil {
-			r.SetData(nil)
-		} else {
-			d, err := proto.Marshal(messageRet)
-			if err != nil {
-				wrapResponse(r, ST_ERROR, err.Error())
-				err = session.Send(r)
-				if err != nil {
-					Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
-					return
-				}
-				continue
-			}
-
-			r.SetData(d)
-			r.SetAttachment(attachment)
-			wrapResponse(r, ST_SUCCESS, "")
-		}
-		err = session.Send(r)
-
-		if err != nil {
-			Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
-			return
+			return nil
 		}
 
-		took := TimetookInSeconds(now)
-		Infof(LOG_TIMECOST_INFO, serviceName, methodName, took)
+		r.SetData(d)
+		r.SetAttachment(attachment)
+		wrapResponse(r, ST_SUCCESS, "")
+	}
+	err = session.Send(r)
 
+	if err != nil {
+		Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+		return err
 	}
 
+	took := TimetookInSeconds(now)
+	Infof(LOG_TIMECOST_INFO, serviceName, methodName, took)
+
+	return nil
 }
 
 func (s *TcpServer) doServiceInvoke(c *ErrorContext, msg proto.Message, sname, method string, attachment []byte, logid int64, service Service) (proto.Message, []byte, error) {
