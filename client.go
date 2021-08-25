@@ -18,6 +18,8 @@ package baidurpc
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -192,8 +194,17 @@ func (c *RpcClient) startLoopReceive() {
 		default:
 			dataPackage, err := c.safeReceive()
 			if err != nil {
-				// if met error, wait some time to retry or call client close method to close loop if met net error
+
+				netErr, ok := err.(*net.OpError)
+				if ok {
+					// if met network error, wait some time to retry or call client close method to close loop if met net error
+					// error maybe about broken network or closed network
+					log.Println(netErr)
+					c.Session.Reconnect() // try reconnect
+
+				}
 				time.Sleep(200 * time.Millisecond)
+
 			}
 
 			if dataPackage != nil && dataPackage.Meta != nil {

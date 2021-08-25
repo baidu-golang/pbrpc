@@ -37,6 +37,7 @@ type Connection interface {
 	Send(rpcDataPackage *RpcDataPackage) error
 	Receive() (*RpcDataPackage, error)
 	Close() error
+	Reconnect() error
 }
 
 type ConnectionTester interface {
@@ -47,6 +48,9 @@ type TCPConnection struct {
 	session *link.Session
 
 	protocol *RpcDataPackageProtocol
+
+	address      string
+	sendChanSize int
 }
 
 /*
@@ -78,19 +82,31 @@ func (c *TCPConnection) connect(url URL, timeout *time.Duration, sendChanSize in
 	if err != nil {
 		return err
 	}
-	protocol.timeout = timeout
+
 	c.protocol = protocol
-	var session *link.Session
-	if timeout == nil {
-		session, err = link.Dial("tcp", u, protocol, sendChanSize)
-	} else {
-		session, err = link.DialTimeout("tcp", u, *timeout, protocol, sendChanSize)
-	}
+	c.protocol.timeout = timeout
+	c.address = u
+	c.sendChanSize = sendChanSize
+	session, err := doConnect(u, protocol, timeout, sendChanSize)
 	if err != nil {
 		return err
 	}
 	c.session = session
 	return nil
+}
+
+func doConnect(address string, protocol *RpcDataPackageProtocol, timeout *time.Duration, sendChanSize int) (*link.Session, error) {
+	var session *link.Session
+	var err error
+	if timeout == nil {
+		session, err = link.Dial("tcp", address, protocol, sendChanSize)
+	} else {
+		session, err = link.DialTimeout("tcp", address, *timeout, protocol, sendChanSize)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return session, nil
 }
 
 func (c *TCPConnection) TestConnection() error {
@@ -172,5 +188,16 @@ func (c *TCPConnection) Close() error {
 	if c.protocol != nil {
 		c.protocol.Stop()
 	}
+	return nil
+}
+
+// Reconnect do connect by saved info
+func (c *TCPConnection) Reconnect() error {
+
+	session, err := doConnect(c.address, c.protocol, c.protocol.timeout, c.sendChanSize)
+	if err != nil {
+		return err
+	}
+	c.session = session
 	return nil
 }

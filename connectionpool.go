@@ -155,6 +155,12 @@ func (c *TCPConnectionPool) GetNumActive() int {
 	return c.objectPool.GetNumActive()
 }
 
+// Reconnect do connect by saved info
+func (c *TCPConnectionPool) Reconnect() error {
+	// do nothing
+	return nil
+}
+
 type ConnectionPoolFactory struct {
 	url     *URL
 	timeout *time.Duration
