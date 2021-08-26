@@ -10,23 +10,13 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
 #### 开发RPC服务端
 
 1. 定义PB对象
-   ```go
-   //手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
-	type DataMessage struct {
-		Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	}
-
-	func (m *DataMessage) Reset()         { *m = DataMessage{} }
-	func (m *DataMessage) String() string { return proto.CompactTextString(m) }
-	func (*DataMessage) ProtoMessage()    {}
-
-	func (m *DataMessage) GetName() string {
-		if m.Name != nil {
-			return *m.Name
-		}
-		return ""
-	}
+   ```property
+   message DataMessae {
+	   string name = 1;
+   }
 	```
+	用protoc工具 生成 pb go 定义文件
+	protoc --go_out=. datamessage.proto
 2. 定义一个对象以及方法，用于发布服务
 
    ```go

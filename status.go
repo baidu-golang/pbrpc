@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/jhunters/timewheel"
 )
 
@@ -34,36 +33,6 @@ import (
 type HttpStatusView struct {
 	server *TcpServer
 }
-
-type RPCStatus struct {
-	Host            string       `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Port            int32        `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	TimeoutSenconds int32        `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	Methods         []*RPCMethod `protobuf:"bytes,4,rep,name=methods,proto3" json:"methods,omitempty"`
-}
-
-type RPCMethod struct {
-	Service        string `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
-	Method         string `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
-	InTypeMeta     string `protobuf:"bytes,3,opt,name=intype,proto3" json:"intype,omitempty"`
-	ReturnTypeMeta string `protobuf:"bytes,4,opt,name=returntype,proto3" json:"returntype,omitempty"`
-}
-
-type QpsData struct {
-	Qpsinfo map[int64]int32 `protobuf:"bytes,1,rep,name=qpsinfo,proto3" json:"qpsinfo,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-}
-
-func (m *RPCStatus) Reset()         { *m = RPCStatus{} }
-func (m *RPCStatus) String() string { return proto.CompactTextString(m) }
-func (*RPCStatus) ProtoMessage()    {}
-
-func (m *RPCMethod) Reset()         { *m = RPCMethod{} }
-func (m *RPCMethod) String() string { return proto.CompactTextString(m) }
-func (*RPCMethod) ProtoMessage()    {}
-
-func (m *QpsData) Reset()         { *m = QpsData{} }
-func (m *QpsData) String() string { return proto.CompactTextString(m) }
-func (*QpsData) ProtoMessage()    {}
 
 func (hsv *HttpStatusView) Status(c context.Context) (*RPCStatus, context.Context) {
 	s := hsv.server

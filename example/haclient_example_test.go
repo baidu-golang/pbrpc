@@ -25,7 +25,7 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ExampleTcpClient
@@ -54,7 +54,7 @@ func ExampleHaTcpClient() {
 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 	message := "say hello from xiemalin中文测试"
-	dm := DataMessage{&message}
+	dm := DataMessage{Name: message}
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)

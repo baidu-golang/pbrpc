@@ -1,3 +1,8 @@
+<!--
+ * @Author: Malin Xie
+ * @Description: 
+ * @Date: 2021-08-06 13:14:23
+-->
 <h1 align="center">baidurpc</h1>
 
 <p align="center">
@@ -15,24 +20,13 @@ $ go get github.com/baidu-golang/pbrpc
 ```
 
 ### 定义protobuf 对象
-以下按pb2进行定义
-   ```go
-   //手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
-	type DataMessage struct {
-		Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	}
-
-	func (m *DataMessage) Reset()         { *m = DataMessage{} }
-	func (m *DataMessage) String() string { return proto.CompactTextString(m) }
-	func (*DataMessage) ProtoMessage()    {}
-
-	func (m *DataMessage) GetName() string {
-		if m.Name != nil {
-			return *m.Name
-		}
-		return ""
-	}
+   ```property
+   message DataMessae {
+	   string name = 1;
+   }
 	```
+	用protoc工具 生成 pb go 定义文件
+	protoc --go_out=. datamessage.proto
 
 
 ### 开发RPC服务端

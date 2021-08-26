@@ -19,25 +19,9 @@ import (
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/proto"
 )
-
-//手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
-type DataMessage struct {
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-}
-
-func (m *DataMessage) Reset()         { *m = DataMessage{} }
-func (m *DataMessage) String() string { return proto.CompactTextString(m) }
-func (*DataMessage) ProtoMessage()    {}
-
-func (m *DataMessage) GetName() string {
-	if m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
 
 var sericeName = "thisIsAServiceName"
 var methodName = "thisIsAMethodName"
@@ -66,11 +50,11 @@ func initRpcDataPackage() *baidurpc.RpcDataPackage {
 
 func equalRpcDataPackage(r baidurpc.RpcDataPackage, t *testing.T) error {
 	Convey("test RpcDataPackage", func() {
-		So(sericeName, ShouldEqual, *r.Meta.Request.ServiceName)
-		So(methodName, ShouldEqual, *r.Meta.Request.MethodName)
+		So(sericeName, ShouldEqual, r.Meta.Request.ServiceName)
+		So(methodName, ShouldEqual, r.Meta.Request.MethodName)
 		So(string(magicCode), ShouldEqual, string(r.GetMagicCode()))
-		So(*r.Meta.Request.LogId, ShouldEqual, logId)
-		So(*r.Meta.CorrelationId, ShouldEqual, correlationId)
+		So(r.Meta.Request.LogId, ShouldEqual, logId)
+		So(r.Meta.CorrelationId, ShouldEqual, correlationId)
 		So(len(data), ShouldEqual, len(r.Data))
 		So(len(attachment), ShouldEqual, len(r.Attachment))
 	})
@@ -116,7 +100,7 @@ func WriteReaderWithRealData(rpcDataPackage *baidurpc.RpcDataPackage,
 	Convey("Test with real data", func() {
 		dataMessage := DataMessage{}
 		name := "hello, xiemalin. this is repeated string aaaaaaaaaaaaaaaaaaaaaa"
-		dataMessage.Name = &name
+		dataMessage.Name = name
 
 		data, err := proto.Marshal(&dataMessage)
 		So(err, ShouldBeNil)
@@ -137,7 +121,7 @@ func WriteReaderWithRealData(rpcDataPackage *baidurpc.RpcDataPackage,
 		dataMessage2 := DataMessage{}
 		proto.Unmarshal(newData, &dataMessage2)
 
-		So(name, ShouldEqual, *dataMessage2.Name)
+		So(name, ShouldEqual, dataMessage2.Name)
 	})
 
 }

@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -126,7 +126,7 @@ func (ss *SimpleService) DoService(msg proto.Message, attachment []byte, logId *
 
 	if msg != nil {
 
-		var name *string = nil
+		var name string
 
 		m, ok := msg.(*DataMessage)
 		if !ok {
@@ -135,14 +135,14 @@ func (ss *SimpleService) DoService(msg proto.Message, attachment []byte, logId *
 		}
 		name = m.Name
 
-		if len(*name) == 0 {
+		if len(name) == 0 {
 			ret = ret + "veryone"
 		} else {
-			ret = ret + *name
+			ret = ret + name
 		}
 	}
 	dm := DataMessage{}
-	dm.Name = proto.String(ret)
+	dm.Name = ret
 	return &dm, []byte{1, 5, 9}, nil
 
 }

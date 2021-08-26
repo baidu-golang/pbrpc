@@ -25,7 +25,7 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // BenchmarkTestLocalConnectionPerformance bench mark test
@@ -60,12 +60,12 @@ func doSimpleRPCInvokeWithSignature(rpcClient *baidurpc.RpcClient, serviceName, 
 	rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 	name := "马林"
-	dm := EchoMessage{name}
+	dm := DataMessage{Name: name}
 
 	rpcInvocation.SetParameterIn(&dm)
 	rpcInvocation.LogId = proto.Int64(1)
 
-	parameterOut := EchoMessage{}
+	parameterOut := DataMessage{}
 
 	rpcClient.SendRpcRequest(rpcInvocation, &parameterOut)
 }

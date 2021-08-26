@@ -21,8 +21,8 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -45,9 +45,9 @@ type AddOneTraceService struct {
 
 // Trace
 func (as *AddOneTraceService) Trace(service, name string, traceInfo *baidurpc.TraceInfo) *baidurpc.TraceInfo {
-	*traceInfo.SpanId++
-	*traceInfo.TraceId++
-	*traceInfo.ParentSpanId++
+	traceInfo.SpanId++
+	traceInfo.TraceId++
+	traceInfo.ParentSpanId++
 	return traceInfo
 }
 
@@ -144,7 +144,7 @@ func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 		name := "(马林)(matthew)(XML)(jhunters)"
-		dm := EchoMessage{name}
+		dm := DataMessage{Name: name}
 
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
@@ -152,7 +152,7 @@ func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
 		dataPackage, err := rpcInvocation.GetRequestRpcDataPackage()
 		So(err, ShouldBeNil)
 
-		dataPackage.ChunkInfo(10, 1) // bad chunk data package
+		dataPackage.ChuckInfo(10, 1) // bad chunk data package
 		go func() {
 			client.Session.SendReceive(dataPackage) // send bad chunk data package server will block unitl timeout
 		}()
@@ -305,7 +305,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 		name := "(马林)(matthew)(XML)(jhunters)"
-		dm := EchoMessage{name}
+		dm := DataMessage{Name: name}
 
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
@@ -323,7 +323,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 			rpcInvocation.AuthenticateData = []byte(AUTH_TOKEN)
 		}
 
-		parameterOut := EchoMessage{}
+		parameterOut := DataMessage{}
 		var response *baidurpc.RpcDataPackage
 		var err error
 		if timeout {
@@ -356,9 +356,9 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 			So(string(response.Attachment), ShouldEqual, "I am a attachementThis is attachment data")
 		}
 
-		So(*response.GetTraceId(), ShouldEqual, rpcInvocation.TraceId+1)
-		So(*response.GetParentSpanId(), ShouldEqual, rpcInvocation.ParentSpanId+1)
-		So(*response.GetParentSpanId(), ShouldEqual, rpcInvocation.ParentSpanId+1)
+		So(response.GetTraceId(), ShouldEqual, rpcInvocation.TraceId+1)
+		So(response.GetParentSpanId(), ShouldEqual, rpcInvocation.ParentSpanId+1)
+		So(response.GetParentSpanId(), ShouldEqual, rpcInvocation.ParentSpanId+1)
 		So(response.GetRpcRequestMetaExt()["key1"], ShouldEqual, "value1")
 	})
 
