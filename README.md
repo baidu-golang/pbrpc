@@ -12,8 +12,8 @@ baidurpc是一种基于TCP协议的二进制高性能RPC通信协议实现。它
 </p>
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/baidu-golang/pbrpc?style=flat-square)](https://goreportcard.com/report/github.com/baidu-golang/pbrpc)
-[![Go](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml/badge.svg)](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml)
-[![codecov](https://codecov.io/gh/baidu-golang/pbrpc/branch/master/graph/badge.svg?token=EY9Z88E82P)](https://codecov.io/gh/baidu-golang/pbrpc)
+[![Go](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml/badge.svg?branch=v1.2.x)](https://github.com/baidu-golang/pbrpc/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/baidu-golang/pbrpc/branch/v1.2.x/graph/badge.svg?token=EY9Z88E82P)](https://codecov.io/gh/baidu-golang/pbrpc)
 [![Releases](https://img.shields.io/github/release/baidu-golang/pbrpc/all.svg?style=flat-square)](https://github.com/baidu-golang/pbrpc/releases)
 [![Go Reference](https://golang.com.cn/badge/github.com/baidu-golang/pbrpc.svg)](https://golang.com.cn/github.com/baidu-golang/pbrpc)
 [![LICENSE](https://img.shields.io/github/license/baidu-golang/pbrpc.svg?style=flat-square)](https://github.com/baidu-golang/pbrpc/blob/master/LICENSE)
@@ -40,6 +40,14 @@ To start using pbrpc, install Go and run `go get`:
 ```sh
 $ go get github.com/baidu-golang/pbrpc
 ```
+
+### Which version
+|version | protobuf package |
+|  ----  | ----  |
+|<= 1.2.x| github.com/golang/protobuf|
+|1.3.x| google.golang.org/protobuf|
+
+FYI: 由于这两个pb类库并不是完全兼容，官方推荐使用  google.golang.org/protobuf
 
 ### 使用说明与Demo 
 
