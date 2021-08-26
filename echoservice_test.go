@@ -31,28 +31,14 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
 )
-
-//手工定义pb生成的代码, tag 格式 = protobuf:"type,order,req|opt|rep|packed,name=fieldname"
-type EchoMessage struct {
-	Name string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-}
-
-func (m *EchoMessage) Reset()         { *m = EchoMessage{} }
-func (m *EchoMessage) String() string { return proto.CompactTextString(m) }
-func (*EchoMessage) ProtoMessage()    {}
-
-func (m *EchoMessage) GetName() string {
-	return m.Name
-}
 
 // EchoService define service
 type EchoService struct {
 }
 
 // Echo  test publish method with return type has context argument
-func (rpc *EchoService) Echo(c context.Context, in *EchoMessage) (*EchoMessage, context.Context) {
+func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
 	var ret = "hello "
 
 	if len(in.Name) == 0 {
@@ -62,7 +48,7 @@ func (rpc *EchoService) Echo(c context.Context, in *EchoMessage) (*EchoMessage, 
 	}
 
 	// return result
-	dm := EchoMessage{ret}
+	dm := DataMessage{Name: ret}
 
 	// time.Sleep(50 * time.Second)
 
@@ -72,7 +58,7 @@ func (rpc *EchoService) Echo(c context.Context, in *EchoMessage) (*EchoMessage, 
 }
 
 // Echo  test publish method with return type has context argument
-func (rpc *EchoService) EchoWithAttchement(c context.Context, in *EchoMessage) (*EchoMessage, context.Context) {
+func (rpc *EchoService) EchoWithAttchement(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
 	var ret = "hello "
 
 	// get attchement
@@ -85,7 +71,7 @@ func (rpc *EchoService) EchoWithAttchement(c context.Context, in *EchoMessage) (
 	}
 
 	// return result
-	dm := EchoMessage{ret}
+	dm := DataMessage{Name: ret}
 
 	att := "I am a attachement" + string(attachement)
 
@@ -95,7 +81,7 @@ func (rpc *EchoService) EchoWithAttchement(c context.Context, in *EchoMessage) (
 }
 
 // Echo  test publish method with return type has context argument
-func (rpc *EchoService) EchoWithCustomizedError(c context.Context, in *EchoMessage) (*EchoMessage, context.Context) {
+func (rpc *EchoService) EchoWithCustomizedError(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
 	var ret = "hello "
 
 	if len(in.Name) == 0 {
@@ -105,7 +91,7 @@ func (rpc *EchoService) EchoWithCustomizedError(c context.Context, in *EchoMessa
 	}
 
 	// return result
-	dm := EchoMessage{ret}
+	dm := DataMessage{Name: ret}
 
 	// bind with err
 	cc := baidurpc.BindError(context.Background(), fmt.Errorf("this is customized error"))
@@ -113,7 +99,7 @@ func (rpc *EchoService) EchoWithCustomizedError(c context.Context, in *EchoMessa
 }
 
 // Echo  test publish method with return type has context argument
-func (rpc *EchoService) EchoWithoutContext(c context.Context, in *EchoMessage) *EchoMessage {
+func (rpc *EchoService) EchoWithoutContext(c context.Context, in *DataMessage) *DataMessage {
 	var ret = "hello "
 
 	if len(in.Name) == 0 {
@@ -123,13 +109,13 @@ func (rpc *EchoService) EchoWithoutContext(c context.Context, in *EchoMessage) *
 	}
 
 	// return result
-	dm := EchoMessage{ret}
+	dm := DataMessage{Name: ret}
 
 	return &dm
 }
 
 // Echo  test publish method with return type has context argument
-func (rpc *EchoService) EchoSlowTest(c context.Context, in *EchoMessage) *EchoMessage {
+func (rpc *EchoService) EchoSlowTest(c context.Context, in *DataMessage) *DataMessage {
 	var ret = "hello "
 
 	time.Sleep(2 * time.Second)
@@ -140,7 +126,7 @@ func (rpc *EchoService) EchoSlowTest(c context.Context, in *EchoMessage) *EchoMe
 	}
 
 	// return result
-	dm := EchoMessage{ret}
+	dm := DataMessage{Name: ret}
 
 	return &dm
 }

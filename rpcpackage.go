@@ -25,8 +25,8 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
+	"google.golang.org/protobuf/proto"
 )
 
 // error log info definition
@@ -59,7 +59,7 @@ message RpcMeta {
     optional int32 compress_type = 3; // 0:nocompress 1:Snappy 2:gzip
     optional int64 correlation_id = 4;
     optional int32 attachment_size = 5;
-    optional ChunkInfo chuck_info = 6;
+    optional ChuckInfo chuck_info = 6;
     optional bytes authentication_data = 7;
 };
 
@@ -82,7 +82,7 @@ message Response {
     optional string error_text = 2;
 };
 
-messsage ChunkInfo {
+messsage ChuckInfo {
         required int64 stream_id = 1;
         required int64 chunk_id = 2;
 };
@@ -139,10 +139,10 @@ func initRpcMeta(r *RpcDataPackage) {
 	}
 }
 
-func initChunkinfo(r *RpcDataPackage) {
+func initChuckInfo(r *RpcDataPackage) {
 	initRpcMeta(r)
-	if r.Meta.ChunkInfo == nil {
-		r.Meta.ChunkInfo = &ChunkInfo{}
+	if r.Meta.ChuckInfo == nil {
+		r.Meta.ChuckInfo = &ChunkInfo{}
 	}
 }
 
@@ -169,7 +169,7 @@ func initResponse(r *RpcDataPackage) {
 func (r *RpcDataPackage) ServiceName(serviceName string) *RpcDataPackage {
 	initRequest(r)
 
-	r.Meta.Request.ServiceName = &serviceName
+	r.Meta.Request.ServiceName = serviceName
 
 	return r
 }
@@ -177,7 +177,7 @@ func (r *RpcDataPackage) ServiceName(serviceName string) *RpcDataPackage {
 func (r *RpcDataPackage) MethodName(methodName string) *RpcDataPackage {
 	initRequest(r)
 
-	r.Meta.Request.MethodName = &methodName
+	r.Meta.Request.MethodName = methodName
 
 	return r
 }
@@ -202,21 +202,21 @@ func (r *RpcDataPackage) AuthenticationData(authenticationData []byte) *RpcDataP
 func (r *RpcDataPackage) CorrelationId(correlationId int64) *RpcDataPackage {
 	initRpcMeta(r)
 
-	r.Meta.CorrelationId = &correlationId
+	r.Meta.CorrelationId = correlationId
 	return r
 }
 
 func (r *RpcDataPackage) CompressType(compressType int32) *RpcDataPackage {
 	initRpcMeta(r)
 
-	r.Meta.CompressType = &compressType
+	r.Meta.CompressType = compressType
 	return r
 }
 
 func (r *RpcDataPackage) LogId(logId int64) *RpcDataPackage {
 	initRequest(r)
 
-	r.Meta.Request.LogId = &logId
+	r.Meta.Request.LogId = logId
 
 	return r
 }
@@ -228,33 +228,33 @@ func (r *RpcDataPackage) GetLogId() int64 {
 
 func (r *RpcDataPackage) TraceId(traceId int64) *RpcDataPackage {
 	initRequest(r)
-	r.Meta.Request.TraceId = &traceId
+	r.Meta.Request.TraceId = traceId
 	return r
 }
 
-func (r *RpcDataPackage) GetTraceId() *int64 {
+func (r *RpcDataPackage) GetTraceId() int64 {
 	initRequest(r)
 	return r.Meta.Request.TraceId
 }
 
 func (r *RpcDataPackage) SpanId(spanId int64) *RpcDataPackage {
 	initRequest(r)
-	r.Meta.Request.SpanId = &spanId
+	r.Meta.Request.SpanId = spanId
 	return r
 }
 
-func (r *RpcDataPackage) GetSpanId() *int64 {
+func (r *RpcDataPackage) GetSpanId() int64 {
 	initRequest(r)
 	return r.Meta.Request.SpanId
 }
 
 func (r *RpcDataPackage) ParentSpanId(parentSpanId int64) *RpcDataPackage {
 	initRequest(r)
-	r.Meta.Request.ParentSpanId = &parentSpanId
+	r.Meta.Request.ParentSpanId = parentSpanId
 	return r
 }
 
-func (r *RpcDataPackage) GetParentSpanId() *int64 {
+func (r *RpcDataPackage) GetParentSpanId() int64 {
 	initRequest(r)
 	return r.Meta.Request.ParentSpanId
 }
@@ -283,7 +283,7 @@ func (r *RpcDataPackage) GetRpcRequestMetaExt() map[string]string {
 func (r *RpcDataPackage) ErrorCode(errorCode int32) *RpcDataPackage {
 	initResponse(r)
 
-	r.Meta.Response.ErrorCode = &errorCode
+	r.Meta.Response.ErrorCode = errorCode
 
 	return r
 }
@@ -291,7 +291,7 @@ func (r *RpcDataPackage) ErrorCode(errorCode int32) *RpcDataPackage {
 func (r *RpcDataPackage) ErrorText(errorText string) *RpcDataPackage {
 	initResponse(r)
 
-	r.Meta.Response.ErrorText = &errorText
+	r.Meta.Response.ErrorText = errorText
 
 	return r
 }
@@ -304,12 +304,12 @@ func (r *RpcDataPackage) ExtraParams(extraParams []byte) *RpcDataPackage {
 	return r
 }
 
-func (r *RpcDataPackage) ChunkInfo(streamId int64, chunkId int64) *RpcDataPackage {
-	chunkInfo := ChunkInfo{}
-	chunkInfo.StreamId = &streamId
-	chunkInfo.ChunkId = &chunkId
+func (r *RpcDataPackage) ChuckInfo(streamId int64, chunkId int64) *RpcDataPackage {
+	ChuckInfo := ChunkInfo{}
+	ChuckInfo.StreamId = streamId
+	ChuckInfo.ChunkId = chunkId
 	initRpcMeta(r)
-	r.Meta.ChunkInfo = &chunkInfo
+	r.Meta.ChuckInfo = &ChuckInfo
 	return r
 }
 
@@ -390,7 +390,7 @@ func (r *RpcDataPackage) Write() ([]byte, error) {
 		totalSize = totalSize + attachmentSize
 	}
 
-	r.Meta.AttachmentSize = proto.Int32(int32(attachmentSize))
+	r.Meta.AttachmentSize = int32(attachmentSize)
 
 	metaBytes, err := proto.Marshal(r.Meta)
 	if err != nil {
@@ -538,24 +538,24 @@ func (r *RpcDataPackage) Chunk(chunkSize int) []*RpcDataPackage {
 
 		tempMeta := *base.Meta
 		base.Meta = &tempMeta
-		initChunkinfo(base)
+		initChuckInfo(base)
 		offset := startPos + chunkSize
 		if offset > dataSize {
 			offset = dataSize
 		}
 		base.Data = base.Data[startPos:offset]
 		startPos += chunkSize
-		tempChunkInfo := &ChunkInfo{StreamId: &chunkStreamID, ChunkId: proto.Int64(int64(i + 1))}
+		tempChuckInfo := &ChunkInfo{StreamId: chunkStreamID, ChunkId: int64(i + 1)}
 		if i == chunkCount-1 {
 			// this is last package
-			tempChunkInfo.ChunkId = proto.Int64(int64(-1))
+			tempChuckInfo.ChunkId = int64(-1)
 		}
 		if i > 0 {
 			// fix duplicate attachment data
 			base.Attachment = nil
 		}
-		chunkInfo := *tempChunkInfo
-		base.Meta.ChunkInfo = &chunkInfo
+		ChuckInfo := *tempChuckInfo
+		base.Meta.ChuckInfo = &ChuckInfo
 		ret[i] = base
 	}
 
@@ -565,13 +565,13 @@ func (r *RpcDataPackage) Chunk(chunkSize int) []*RpcDataPackage {
 // GetChunkStreamId
 func (r *RpcDataPackage) GetChunkStreamId() int64 {
 	initRpcMeta(r)
-	return r.Meta.ChunkInfo.GetStreamId()
+	return r.Meta.ChuckInfo.GetStreamId()
 }
 
 // getChunkId
 func (r *RpcDataPackage) getChunkId() int64 {
 	initRpcMeta(r)
-	return r.Meta.ChunkInfo.GetChunkId()
+	return r.Meta.ChuckInfo.GetChunkId()
 }
 
 // IsChunkPackage
@@ -585,5 +585,5 @@ func (r *RpcDataPackage) IsFinalPackage() bool {
 }
 
 func (r *RpcDataPackage) ClearChunkStatus() {
-	r.ChunkInfo(0, 0)
+	r.ChuckInfo(0, 0)
 }

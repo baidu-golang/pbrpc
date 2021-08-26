@@ -32,8 +32,8 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -101,7 +101,7 @@ func sendRpc(host string, port int, serviceName, methodName string, parameterIn,
 	}
 
 	rpcDataPackage, err := rpcClient.SendRpcRequest(rpcInvocation, parameterOut)
-	if int(*rpcDataPackage.Meta.GetResponse().ErrorCode) == baidurpc.ST_SERVICE_NOTFOUND {
+	if int(rpcDataPackage.Meta.GetResponse().ErrorCode) == baidurpc.ST_SERVICE_NOTFOUND {
 		return fmt.Errorf("remote server not support this feature,  please upgrade version")
 	}
 

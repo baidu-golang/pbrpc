@@ -93,7 +93,7 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		traceId := getHeaderAsInt64(req, Trace_Id_key)
 		spanId := getHeaderAsInt64(req, Trace_Span_key)
 		parentId := getHeaderAsInt64(req, Trace_Parent_key)
-		traceInfo := &TraceInfo{TraceId: &traceId, SpanId: &spanId, ParentSpanId: &parentId}
+		traceInfo := &TraceInfo{TraceId: traceId, SpanId: spanId, ParentSpanId: parentId}
 
 		value := getHeaderAsByte(req, Request_Meta_Key)
 		if value != nil {
@@ -107,15 +107,9 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		traceRetrun := h.s.traceService.Trace(serviceName, method, traceInfo)
 		if traceRetrun != nil {
-			if traceRetrun.TraceId != nil {
-				w.Header().Set(Trace_Id_key, int64ToString(traceRetrun.TraceId))
-			}
-			if traceRetrun.SpanId != nil {
-				w.Header().Set(Trace_Span_key, int64ToString(traceRetrun.SpanId))
-			}
-			if traceRetrun.ParentSpanId != nil {
-				w.Header().Set(Trace_Parent_key, int64ToString(traceRetrun.ParentSpanId))
-			}
+			w.Header().Set(Trace_Id_key, int64ToString(traceRetrun.TraceId))
+			w.Header().Set(Trace_Span_key, int64ToString(traceRetrun.SpanId))
+			w.Header().Set(Trace_Parent_key, int64ToString(traceRetrun.ParentSpanId))
 			if traceRetrun.RpcRequestMetaExt != nil {
 				metaData, err := json.Marshal(traceRetrun.RpcRequestMetaExt)
 				if err == nil {
@@ -182,11 +176,8 @@ func getHeaderAsInt64(req *http.Request, key string) int64 {
 	return int64(id)
 }
 
-func int64ToString(i *int64) string {
-	if i == nil {
-		return ""
-	}
-	return strconv.Itoa(int(*i))
+func int64ToString(i int64) string {
+	return strconv.Itoa(int(i))
 }
 
 func errResponse(errno int, message string) *ResponseData {

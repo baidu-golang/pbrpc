@@ -25,8 +25,8 @@ import (
 	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
 	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/protobuf/proto"
 )
 
 // TestHaClient test ha client
@@ -65,7 +65,7 @@ func doHaSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.HaRpcClient,
 		rpcInvocation := baidurpc.NewRpcInvocation(&serviceName, &methodName)
 
 		name := "马林"
-		dm := EchoMessage{name}
+		dm := DataMessage{Name: name}
 
 		rpcInvocation.SetParameterIn(&dm)
 		rpcInvocation.LogId = proto.Int64(1)
@@ -74,7 +74,7 @@ func doHaSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.HaRpcClient,
 			rpcInvocation.Attachment = []byte("This is attachment data")
 		}
 
-		parameterOut := EchoMessage{}
+		parameterOut := DataMessage{}
 		var response *baidurpc.RpcDataPackage
 		var err error
 		if async {

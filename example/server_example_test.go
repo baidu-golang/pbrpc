@@ -34,10 +34,9 @@ import (
 	"net/rpc"
 	"reflect"
 	"strings"
-	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ExampleRpcServer
@@ -120,19 +119,19 @@ func ExampleRpcServerRegisterWithCallback() {
 				return nil, nil, errors.New(errStr)
 			}
 
-			var name *string = nil
+			var name string
 
 			m := msg.(*DataMessage)
 			name = m.Name
 
-			if len(*name) == 0 {
+			if len(name) == 0 {
 				ret = ret + "veryone"
 			} else {
-				ret = ret + *name
+				ret = ret + name
 			}
 		}
 		dm := DataMessage{}
-		dm.Name = proto.String(ret)
+		dm.Name = ret
 		return &dm, []byte{1, 5, 9}, nil
 	}
 
@@ -150,19 +149,16 @@ type EchoService struct {
 func (rpc *EchoService) Echo(c context.Context, in *DataMessage) (*DataMessage, context.Context) {
 	var ret = "hello "
 
-	// slow here
-	time.Sleep(1000 * time.Millisecond)
-
 	attachement := baidurpc.Attachement(c)
 	fmt.Println("attachement", attachement)
 
-	if len(*in.Name) == 0 {
+	if len(in.Name) == 0 {
 		ret = ret + "veryone"
 	} else {
-		ret = ret + *in.Name
+		ret = ret + in.Name
 	}
 	dm := DataMessage{}
-	dm.Name = proto.String(ret)
+	dm.Name = ret
 
 	// bind attachment
 	cc := baidurpc.BindAttachement(context.Background(), []byte("hello"))

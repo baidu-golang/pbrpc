@@ -32,7 +32,7 @@ import (
 	"github.com/funny/link"
 
 	"github.com/baidu-golang/pbrpc/nettool"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -160,6 +160,9 @@ func parsePbMetaFromType(t reflect.Type) []*PbFieldMeta {
 }
 
 func parseMetaString(meta string) *PbFieldMeta {
+	if len(meta) == 0 {
+		return nil // empty tag meta return directly
+	}
 	partials := strings.Split(meta, ",")
 	metaSize := len(partials)
 	if metaSize >= 4 {
@@ -230,9 +233,9 @@ type AuthService interface {
 }
 
 type TraceInfo struct {
-	TraceId           *int64
-	SpanId            *int64
-	ParentSpanId      *int64
+	TraceId           int64
+	SpanId            int64
+	ParentSpanId      int64
 	RpcRequestMetaExt map[string]string
 }
 
@@ -496,15 +499,9 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 		traceInfo.RpcRequestMetaExt = r.GetRpcRequestMetaExt()
 		traceRetrun := s.traceService.Trace(serviceName, methodName, traceInfo)
 		if traceRetrun != nil {
-			if traceRetrun.TraceId != nil {
-				r.TraceId(*traceRetrun.TraceId)
-			}
-			if traceRetrun.SpanId != nil {
-				r.SpanId(*traceRetrun.SpanId)
-			}
-			if traceRetrun.ParentSpanId != nil {
-				r.ParentSpanId(*traceRetrun.ParentSpanId)
-			}
+			r.TraceId(traceRetrun.TraceId)
+			r.SpanId(traceRetrun.SpanId)
+			r.ParentSpanId(traceRetrun.ParentSpanId)
 			if traceRetrun.RpcRequestMetaExt != nil {
 				r.RpcRequestMetaExt(traceRetrun.RpcRequestMetaExt)
 			}
@@ -538,7 +535,7 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 	ec := &ErrorContext{}
 
 	// do service here
-	messageRet, attachment, err := s.doServiceInvoke(ec, msg, *r.Meta.Request.ServiceName, *r.Meta.Request.MethodName, r.GetAttachment(), r.GetLogId(), service)
+	messageRet, attachment, err := s.doServiceInvoke(ec, msg, r.Meta.Request.ServiceName, r.Meta.Request.MethodName, r.GetAttachment(), r.GetLogId(), service)
 	if ec.err != nil {
 		err = ec.err
 	}
@@ -603,8 +600,8 @@ func (s *TcpServer) doServiceInvoke(c *ErrorContext, msg proto.Message, sname, m
 func wrapResponse(r *RpcDataPackage, errorCode int, errorText string) {
 	r.GetMeta().Response = &Response{}
 
-	r.GetMeta().GetResponse().ErrorCode = proto.Int32(int32(errorCode))
-	r.GetMeta().GetResponse().ErrorText = proto.String(errorText)
+	r.GetMeta().GetResponse().ErrorCode = int32(errorCode)
+	r.GetMeta().GetResponse().ErrorText = errorText
 }
 
 func GetServiceId(serviceName, methodName string) string {

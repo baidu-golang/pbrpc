@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -37,9 +37,9 @@ func TestPropertySetAndGet(t *testing.T) {
 		var logId int64 = 1
 
 		request := baidurpc.Request{
-			ServiceName: &serviceName,
-			MethodName:  &methodName,
-			LogId:       &logId,
+			ServiceName: serviceName,
+			MethodName:  methodName,
+			LogId:       logId,
 		}
 
 		So(serviceName, ShouldEqual, request.GetServiceName())
