@@ -131,7 +131,7 @@ func parsePbMetaFromType(t reflect.Type) []*PbFieldMeta {
 		return nil
 	}
 
-	metas := make([]*PbFieldMeta, size)
+	metas := make([]*PbFieldMeta, 0)
 	for i := 0; i < size; i++ {
 		tagstruct := t.Field(i).Tag
 
@@ -139,7 +139,7 @@ func parsePbMetaFromType(t reflect.Type) []*PbFieldMeta {
 		pbtag := tagstruct.Get("protobuf")
 		meta := parseMetaString(pbtag)
 		if meta != nil {
-			metas[i] = meta
+			metas = append(metas, meta)
 			mapKey := tagstruct.Get("protobuf_key")
 			mapValue := tagstruct.Get("protobuf_val")
 			if len(mapKey) > 0 && len(mapValue) > 0 {

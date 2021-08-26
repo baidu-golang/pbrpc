@@ -98,8 +98,8 @@ type RPCMethod struct {
 
 	Service        string `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
 	Method         string `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
-	InTypeMeta     string `protobuf:"bytes,3,opt,name=InTypeMeta,proto3" json:"InTypeMeta,omitempty"`
-	ReturnTypeMeta string `protobuf:"bytes,4,opt,name=ReturnTypeMeta,proto3" json:"ReturnTypeMeta,omitempty"`
+	InTypeMeta     string `protobuf:"bytes,3,opt,name=intype,proto3" json:"intype,omitempty"`
+	ReturnTypeMeta string `protobuf:"bytes,4,opt,name=returntype,proto3" json:"returntype,omitempty"`
 }
 
 func (x *RPCMethod) Reset() {
