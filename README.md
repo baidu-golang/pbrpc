@@ -41,6 +41,14 @@ To start using pbrpc, install Go and run `go get`:
 $ go get github.com/baidu-golang/pbrpc
 ```
 
+### Which version
+|version | protobuf package |
+|  ----  | ----  |
+|<= 1.2.x| github.com/golang/protobuf|
+|1.3.x| google.golang.org/protobuf|
+
+FYI: 由于这两个pb类库并不是完全兼容，官方推荐使用  google.golang.org/protobuf
+
 ### 使用说明与Demo 
 
  [Quick Start(服务发布)](./docs/quickstart_server.md) <br>
