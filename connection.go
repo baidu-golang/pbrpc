@@ -44,13 +44,12 @@ type ConnectionTester interface {
 	TestConnection() error
 }
 
+// TCPConnection simple tcp based connection implementation
 type TCPConnection struct {
-	session *link.Session
-
-	protocol *RpcDataPackageProtocol
-
 	address      string
 	sendChanSize int
+	session      *link.Session
+	protocol     *RpcDataPackageProtocol
 }
 
 /*

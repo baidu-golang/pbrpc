@@ -303,6 +303,8 @@ type TcpServer struct {
 	enableHttp bool
 
 	selector *nettool.CustomListenerSelector
+
+	EnablePerformanceLog bool
 }
 
 type serviceMeta struct {
@@ -548,8 +550,10 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 		}
 		return nil
 	}
-	took2 := TimetookInSeconds(now2.Unix())
-	Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
+	if s.EnablePerformanceLog {
+		took2 := TimetookInSeconds(now2.Unix())
+		Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
+	}
 
 	if messageRet == nil {
 		r.SetData(nil)
@@ -576,8 +580,10 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 		return err
 	}
 
-	took := TimetookInSeconds(now)
-	Infof(LOG_TIMECOST_INFO, serviceName, methodName, took)
+	if s.EnablePerformanceLog {
+		took := TimetookInSeconds(now)
+		Infof(LOG_TIMECOST_INFO, serviceName, methodName, took)
+	}
 
 	return nil
 }
