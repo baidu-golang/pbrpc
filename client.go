@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -53,7 +54,7 @@ type RpcClient struct {
 	// 单次请求唯一标识
 	correlationId int64
 	// async request state map
-	requestCallState map[int64]chan *RpcDataPackage
+	requestCallState sync.Map //  use sync map for cocurrent access
 
 	// to close loop receive
 	closeChan chan bool
@@ -111,7 +112,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
 	c.closeChan = make(chan bool, 1)
-	c.requestCallState = make(map[int64]chan *RpcDataPackage)
+	c.requestCallState = sync.Map{}
 
 	if c.asyncMode { // only enabled on async mode
 		go c.startLoopReceive()
@@ -209,13 +210,13 @@ func (c *RpcClient) startLoopReceive() {
 
 			if dataPackage != nil && dataPackage.Meta != nil {
 				correlationId := dataPackage.Meta.GetCorrelationId()
-				ch, exist := c.requestCallState[correlationId]
+				v, exist := c.requestCallState.LoadAndDelete(correlationId)
 				if !exist {
 					// bad response correlationId
 					Errorf("bad correlationId '%d' not exist ", correlationId)
 					continue
 				}
-				delete(c.requestCallState, correlationId)
+				ch := v.(chan *RpcDataPackage)
 				go func() {
 					ch <- dataPackage
 				}()
@@ -321,7 +322,7 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 	var rsp *RpcDataPackage
 	if c.asyncMode {
 		ch := make(chan *RpcDataPackage, 1)
-		c.requestCallState[correlationId] = ch
+		c.requestCallState.Store(correlationId, ch)
 
 		if timeout > 0 {
 			go c.asyncRequest(timeout, rpcDataPackage, ch)
