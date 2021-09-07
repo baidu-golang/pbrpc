@@ -32,8 +32,8 @@ var (
 	defaultTimewheelInterval = 10 * time.Millisecond
 	defaultTimewheelSlot     = 300
 
-	ERR_NEED_INIT             = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
-	ERR_RESPONSE_NIL          = errors.New("[client-003]No response result, mybe net work break error")
+	errNeedInit               = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
+	errResponseNil            = errors.New("[client-003]No response result, mybe net work break error")
 	LOG_SERVER_REPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
 	LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 
@@ -106,10 +106,11 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c := RpcClient{}
 	c.Session = connection
 
-	// async mode not support pooled connection
+	// async mode not support under pooled connection
 	_, pooled := connection.(*TCPConnectionPool)
 	c.asyncMode = !pooled
 
+	// initial timewheel to process async request on time out event handle
 	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
 	c.closeChan = make(chan bool, 1)
@@ -306,7 +307,7 @@ func (c *RpcClient) SendRpcRequest(rpcInvocation *RpcInvocation, responseMessage
 // SendRpcRequest send rpc request to remote server
 func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocation *RpcInvocation, responseMessage proto.Message) (*RpcDataPackage, error) {
 	if c.Session == nil {
-		return nil, ERR_NEED_INIT
+		return nil, errNeedInit
 	}
 
 	now := time.Now().UnixNano()
@@ -355,7 +356,7 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 
 	r := rsp
 	if r == nil {
-		return nil, ERR_RESPONSE_NIL //to ignore this nil value
+		return nil, errResponseNil //to ignore this nil value
 	}
 
 	errorCode := r.GetMeta().GetResponse().GetErrorCode()

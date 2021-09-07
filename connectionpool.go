@@ -23,15 +23,16 @@ import (
 	pool "github.com/jolestar/go-commons-pool/v2"
 )
 
-var Empty_Head = make([]byte, SIZE)
+var (
+	Empty_Head = make([]byte, SIZE)
 
-var ERR_POOL_NOT_INIT = errors.New("[connpool-001]Object pool is nil maybe not init Connect() function.")
-var ERR_GET_CONN_FAIL = errors.New("[connpool-002]Can not get connection from connection pool. target object is nil.")
-var ERR_DESTORY_OBJECT_NIL = errors.New("[connpool-003]Destroy object failed due to target object is nil.")
-var ERR_POOL_URL_NIL = errors.New("[connpool-004]Can not create object cause of URL is nil.")
+	errPoolNotInit      = errors.New("[connpool-001]Object pool is nil maybe not init Connect() function")
+	errGetConnFail      = errors.New("[connpool-002]Can not get connection from connection pool. target object is nil")
+	errDestroyObjectNil = errors.New("[connpool-003]Destroy object failed due to target object is nil")
 
-var HB_SERVICE_NAME = "__heartbeat"
-var HB_METHOD_NAME = "__beat"
+	HB_SERVICE_NAME = "__heartbeat"
+	HB_METHOD_NAME  = "__beat"
+)
 
 /*
 type Connection interface {
@@ -89,7 +90,7 @@ func (c *TCPConnectionPool) connect(url URL, timeout *time.Duration, sendChanSiz
 
 func (c *TCPConnectionPool) borrowObject() (*TCPConnection, error) {
 	if c.objectPool == nil {
-		return nil, ERR_POOL_NOT_INIT
+		return nil, errPoolNotInit
 	}
 
 	object, err := c.objectPool.BorrowObject(context.Background())
@@ -98,7 +99,7 @@ func (c *TCPConnectionPool) borrowObject() (*TCPConnection, error) {
 	}
 
 	if object == nil {
-		return nil, ERR_GET_CONN_FAIL
+		return nil, errGetConnFail
 	}
 
 	return object.(*TCPConnection), nil
@@ -140,7 +141,7 @@ func (c *TCPConnectionPool) Receive() (*RpcDataPackage, error) {
 
 func (c *TCPConnectionPool) Close() error {
 	if c.objectPool == nil {
-		return ERR_POOL_NOT_INIT
+		return errPoolNotInit
 	}
 
 	c.objectPool.Close(context.Background())
@@ -168,7 +169,7 @@ type ConnectionPoolFactory struct {
 
 func (c *ConnectionPoolFactory) MakeObject(ctx context.Context) (*pool.PooledObject, error) {
 	if c.url == nil {
-		return nil, ERR_POOL_URL_NIL
+		return nil, errPoolNotInit
 	}
 
 	connection := TCPConnection{}
@@ -183,7 +184,7 @@ func (c *ConnectionPoolFactory) MakeObject(ctx context.Context) (*pool.PooledObj
 func (c *ConnectionPoolFactory) DestroyObject(ctx context.Context, object *pool.PooledObject) error {
 	obj := object.Object
 	if obj == nil {
-		return ERR_DESTORY_OBJECT_NIL
+		return errDestroyObjectNil
 	}
 
 	conn := obj.(Connection)

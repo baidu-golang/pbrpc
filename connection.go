@@ -24,10 +24,11 @@ import (
 	"github.com/funny/link"
 )
 
-var ERR_SESSION_IS_NIL = errors.New("[conn-001]Session is nil, maybe not init Connect() function")
-var ERR_INVALID_URL = errors.New("[conn-002]parameter 'url' of host property is nil")
-
-var LOG_INVALID_PORT = "[conn-003]invalid parameter 'url' of port property is '%d'"
+var (
+	errSessionIsNil  = errors.New("[conn-001]Session is nil, maybe not init Connect() function")
+	errInvalidUrl    = errors.New("[conn-002]parameter 'url' of host property is nil")
+	LOG_INVALID_PORT = "[conn-003]invalid parameter 'url' of port property is '%d'"
+)
 
 /*
  Connection handler interface
@@ -69,7 +70,7 @@ func NewTCPConnection(url URL, timeout *time.Duration) (*TCPConnection, error) {
 func (c *TCPConnection) connect(url URL, timeout *time.Duration, sendChanSize int) error {
 	host := url.Host
 	if host == nil || len(*host) == 0 {
-		return ERR_INVALID_URL
+		return errInvalidUrl
 	}
 	port := url.Port
 	if port == nil || *port <= 0 {
@@ -110,7 +111,7 @@ func doConnect(address string, protocol *RpcDataPackageProtocol, timeout *time.D
 
 func (c *TCPConnection) TestConnection() error {
 	if c.session == nil {
-		return ERR_SESSION_IS_NIL
+		return errSessionIsNil
 	}
 	closed := c.session.IsClosed()
 	if closed {
@@ -127,10 +128,10 @@ func (c *TCPConnection) GetId() uint64 {
 	return uint64(0)
 }
 
-// SendReceive
+// SendReceive send data to connect and block wait data recevie
 func (c *TCPConnection) SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPackage, error) {
 	if c.session == nil {
-		return nil, ERR_SESSION_IS_NIL
+		return nil, errSessionIsNil
 	}
 
 	err := c.session.Send(rpcDataPackage)
@@ -143,20 +144,20 @@ func (c *TCPConnection) SendReceive(rpcDataPackage *RpcDataPackage) (*RpcDataPac
 
 }
 
-// Send
+// Send data to connection
 func (c *TCPConnection) Send(rpcDataPackage *RpcDataPackage) error {
 	if c.session == nil {
-		return ERR_SESSION_IS_NIL
+		return errSessionIsNil
 	}
 
 	return c.session.Send(rpcDataPackage)
 
 }
 
-// Receive
+// Receive data from connection
 func (c *TCPConnection) Receive() (*RpcDataPackage, error) {
 	if c.session == nil {
-		return nil, ERR_SESSION_IS_NIL
+		return nil, errSessionIsNil
 	}
 
 	return doReceive(c.session)

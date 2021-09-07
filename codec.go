@@ -31,7 +31,7 @@ import (
 const REQUIRED_TYPE = "baidurpc.RpcDataPackage"
 
 var (
-	ERR_INVALID_TYPE        = errors.New("[codec-001]type mismatch, target type should be 'baidurpc.RpcDataPackage'")
+	errInvalidType          = errors.New("[codec-001]type mismatch, target type should be 'baidurpc.RpcDataPackage'")
 	LOG_CLOSE_CONNECT_INFO  = "[codec-100]Do close connection. connection info:%v"
 	chunkPackageCacheExpire = 60 * time.Second
 )
@@ -75,7 +75,7 @@ func (r *RpcDataPackageCodec) Send(msg interface{}) error {
 
 	name := v.Type().String()
 	if !strings.Contains(name, REQUIRED_TYPE) {
-		return ERR_INVALID_TYPE
+		return errInvalidType
 	}
 
 	dataPackage := convertRpcDataPackage(msg, isPtr)
@@ -135,7 +135,7 @@ func (r *RpcDataPackageCodec) doReceive(conn io.ReadWriter) (interface{}, error)
 	dataPackage := NewRpcDataPackage()
 	err := dataPackage.ReadIO(conn)
 	if err != nil {
-		if err == ERR_IGNORE_ERR {
+		if err == errIgnoreErr {
 			return nil, nil
 		}
 		return nil, err

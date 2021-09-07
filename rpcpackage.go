@@ -31,9 +31,8 @@ import (
 
 // error log info definition
 var (
-	ERR_NO_SNAPPY     = errors.New("[marshal-002]Snappy compress not support yet")
-	ERR_IGNORE_ERR    = errors.New("[marshal-001]Ingore error")
-	ERR_META          = errors.New("[marshal-003]Get nil value from Meta struct after marshal")
+	errIgnoreErr      = errors.New("[marshal-001]Ingore error")
+	errMeta           = errors.New("[marshal-003]Get nil value from Meta struct after marshal")
 	LOG_INVALID_BYTES = "[marshal-004]Invalid byte array. maybe a broken byte stream. Received '%b'"
 )
 
@@ -398,7 +397,7 @@ func (r *RpcDataPackage) Write() ([]byte, error) {
 	}
 
 	if metaBytes == nil {
-		return nil, ERR_META
+		return nil, errMeta
 	}
 
 	rpcMetaSize := int32(len(metaBytes))
@@ -441,7 +440,7 @@ func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 	_, err := rw.Read(head)
 	if err != nil {
 		if err == io.EOF {
-			return ERR_IGNORE_ERR
+			return errIgnoreErr
 		}
 		log.Println("Read head error", err)
 		// only to close current connection
@@ -459,7 +458,7 @@ func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 	totalSize := r.Head.GetMessageSize()
 	if totalSize <= 0 {
 		// maybe heart beat data message, so do ignore here
-		return ERR_IGNORE_ERR
+		return errIgnoreErr
 	}
 
 	// read left
