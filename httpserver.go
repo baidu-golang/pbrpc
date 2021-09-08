@@ -61,7 +61,6 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.Write(data)
 		return
 	}
-
 	serviceName, method, err := getServiceMethod(path)
 	if err != nil {
 		data := toJson(errResponse(ST_ERROR, err.Error()))

@@ -1,3 +1,6 @@
 .project
 .settings/org.eclipse.core.resources.prefs
 .idea
+.vscode/launch.json
+.gitignore
+.vscode/settings.json

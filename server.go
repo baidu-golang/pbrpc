@@ -61,9 +61,9 @@ const (
 
 // error log info definition
 var (
-	ERR_SERVER_NOT_INIT     = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer")
-	ERR_INVALID_PORT        = errors.New("[server-002]port of server is nil or invalid")
-	ERR_RESPONSE_TO_CLIENT  = errors.New("[server-003]response call session.Send to client failed")
+	errServerNotInit        = errors.New("[server-001]serverMeta is nil. please use NewTpcServer() to create TcpServer")
+	errInvalidPort          = errors.New("[server-002]port of server is nil or invalid")
+	errResponseToClient     = errors.New("[server-003]response call session.Send to client failed")
 	errAuth                 = errors.New("authenticate failed, pls use correct authenticate value")
 	LOG_SERVICE_NOTFOUND    = "[server-" + strconv.Itoa(ST_SERVICE_NOTFOUND) + "]Service name '%s' or method name '%s' not found"
 	LOG_SERVICE_DUPLICATE   = "[server-004]Service name '%s' or method name '%s' already exist"
@@ -388,7 +388,7 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 
 func (s *TcpServer) Start() error {
 	if s.serverMeta == nil {
-		return ERR_SERVER_NOT_INIT
+		return errServerNotInit
 	}
 
 	var addr = ""
@@ -399,7 +399,7 @@ func (s *TcpServer) Start() error {
 
 	port := s.serverMeta.Port
 	if port == nil || *port <= 0 {
-		return ERR_INVALID_PORT
+		return errInvalidPort
 	}
 
 	addr = addr + host + ":" + strconv.Itoa(*port)
@@ -489,7 +489,7 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 			wrapResponse(r, ST_AUTH_ERROR, errAuth.Error())
 			err := session.Send(r)
 			if err != nil {
-				Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+				Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 				return err
 			}
 			return nil
@@ -518,7 +518,7 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 
 		err := session.Send(r)
 		if err != nil {
-			Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+			Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 			return err
 		}
 		return nil
@@ -545,7 +545,7 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 		wrapResponse(r, ST_ERROR, err.Error())
 		err := session.Send(r)
 		if err != nil {
-			Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+			Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 			return err
 		}
 		return nil
@@ -563,7 +563,7 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 			wrapResponse(r, ST_ERROR, err.Error())
 			err = session.Send(r)
 			if err != nil {
-				Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+				Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 				return err
 			}
 			return nil
@@ -576,7 +576,7 @@ func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) er
 	err = session.Send(r)
 
 	if err != nil {
-		Error(ERR_RESPONSE_TO_CLIENT.Error(), "sessionId=", session.ID(), err)
+		Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 		return err
 	}
 
