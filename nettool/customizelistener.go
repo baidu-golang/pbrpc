@@ -204,7 +204,7 @@ func (cw *ConnWrapper) Read(b []byte) (n int, err error) {
 			return nn + int(cw.headsize), err
 		}
 		return nn + int(cw.headsize), nil
-	} else if size < int(cw.headsize) && cw.n < int(cw.headsize) {
+	} else if size <= int(cw.headsize) && cw.n < int(cw.headsize) {
 		for i := cw.n; i < size; i++ {
 			b[i] = cw.head[i]
 		}
