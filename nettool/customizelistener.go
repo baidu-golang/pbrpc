@@ -194,26 +194,34 @@ type ConnWrapper struct {
 func (cw *ConnWrapper) Read(b []byte) (n int, err error) {
 	size := len(b)
 
-	if size > int(cw.headsize) && cw.n < int(cw.headsize) {
+	// if still could read from head
+	count := 0
+	if cw.n < int(cw.headsize) {
 		for i := cw.n; i < int(cw.headsize); i++ {
-			b[i] = cw.head[i]
+			b[count] = cw.head[i]
+			count++
+			cw.n++
+			if count >= size {
+				break
+			}
 		}
-		cw.n = size
-		nn, err := cw.conn.Read(b[cw.headsize:])
+
+		// if read all from head
+		if count >= size {
+			return size, nil
+		}
+		// otherwise read left
+		nn, err := cw.conn.Read(b[count:])
+		count = count + nn
 		if err != nil {
-			return nn + int(cw.headsize), err
+			return count, err
 		}
-		return nn + int(cw.headsize), nil
-	} else if size <= int(cw.headsize) && cw.n < int(cw.headsize) {
-		for i := cw.n; i < size; i++ {
-			b[i] = cw.head[i]
-		}
-		cw.n = size
-		return size, nil
+		return count, nil
+	} else {
+		// otherwize read directly
+		count, err := cw.conn.Read(b)
+		return count, err
 	}
-	// otherwize read directly
-	count, err := cw.conn.Read(b)
-	return count, err
 }
 
 // Write writes data to the connection.
