@@ -194,14 +194,14 @@ type ConnWrapper struct {
 func (cw *ConnWrapper) Read(b []byte) (n int, err error) {
 	size := len(b)
 
-	// if still could read from head
 	count := 0
+	// if still could read from head
 	if cw.n < int(cw.headsize) {
 		for i := cw.n; i < int(cw.headsize); i++ {
 			b[count] = cw.head[i]
 			count++
 			cw.n++
-			if count >= size {
+			if count >= size { // if read finish
 				break
 			}
 		}
