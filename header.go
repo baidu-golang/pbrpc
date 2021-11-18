@@ -20,13 +20,17 @@ import (
 	"encoding/binary"
 )
 
-const SIZE = 12
+const (
+	SIZE = 12
 
-const MAGIC_CODE = "PRPC"
+	MagicSize = 4
 
-const COMPRESS_NO int32 = 0
-const COMPRESS_SNAPPY int32 = 1
-const COMPRESS_GZIP int32 = 2
+	MAGIC_CODE = "PRPC"
+
+	COMPRESS_NO     int32 = 0
+	COMPRESS_SNAPPY int32 = 1
+	COMPRESS_GZIP   int32 = 2
+)
 
 // Writable is the interface that do serialize to []byte
 // if errror ocurres should return non-nil error
@@ -69,23 +73,26 @@ func (h *Header) Write() ([]byte, error) {
 }
 
 func intToBytes(i int32) []byte {
-	bytes := make([]byte, 4)
+	bytes := make([]byte, MagicSize)
 	binary.BigEndian.PutUint32(bytes, uint32(i))
 	return bytes
 }
 
+// Read read byte array
 func (h *Header) Read(bytes []byte) error {
 	if bytes == nil || len(bytes) != SIZE {
 		return nil
 	}
-	h.MagicCode = bytes[0:4]
+	h.MagicCode = bytes[0:MagicSize]
+	// message size offset 4 and 8
 	h.MessageSize = int32(binary.BigEndian.Uint32(bytes[4:8]))
+	// meta size offset 8 and 12
 	h.MetaSize = int32(binary.BigEndian.Uint32(bytes[8:12]))
 	return nil
 }
 
 func (h *Header) SetMagicCode(MagicCode []byte) {
-	if MagicCode == nil || len(MagicCode) != 4 {
+	if MagicCode == nil || len(MagicCode) != MagicSize {
 		return
 	}
 	h.MagicCode = MagicCode

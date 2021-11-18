@@ -770,7 +770,7 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 		if methodType.InArgValue != nil {
 			inType = methodType.InArgValue.(proto.Message)
 			if inType == nil {
-				// if not of type proto.Message
+				// if type is not proto.Message
 				continue
 			}
 
@@ -788,10 +788,6 @@ func (s *TcpServer) registerWithMethodMapping(name string, rcvr interface{}, map
 		sid := GetServiceId(st.name, mName)
 		s.servicesMeta[sid] = &serviceMeta{methodType.InPbFieldMetas, methodType.RetrunPbFieldMetas}
 	}
-
-	// function := mtype.method.Func
-	// Invoke the method, providing a new value for the reply.
-	// returnValues := function.Call([]reflect.Value{s.rcvr, argv, replyv})
 
 	return true, nil
 }
