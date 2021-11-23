@@ -53,8 +53,8 @@ MetaSize = Meta object size
 
 2. <Meta> body proto description as follow
 message RpcMeta {
-    optional RpcRequestMeta request = 1;
-    optional RpcResponseMeta response = 2;
+    optional Request request = 1;
+    optional Response response = 2;
     optional int32 compress_type = 3; // 0:nocompress 1:Snappy 2:gzip
     optional int64 correlation_id = 4;
     optional int32 attachment_size = 5;
@@ -92,8 +92,8 @@ messsage ChuckInfo {
 
 */
 type RpcDataPackage struct {
-	Head       *Header
-	Meta       *RpcMeta
+	Head       *Header  // rpc head
+	Meta       *RpcMeta // rpc meta
 	Data       []byte
 	Attachment []byte
 
