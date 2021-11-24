@@ -6,6 +6,7 @@
 package baidurpc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -35,7 +36,8 @@ type ResponseData struct {
 }
 
 type HttpServer struct {
-	s *TcpServer
+	s       *TcpServer
+	httpsrv *http.Server
 }
 
 func (h *HttpServer) serverHttp(l net.Listener) {
@@ -43,6 +45,8 @@ func (h *HttpServer) serverHttp(l net.Listener) {
 	srv := &http.Server{
 		Handler: h,
 	}
+
+	h.httpsrv = srv
 
 	go func() {
 		// service connections
@@ -155,6 +159,13 @@ func (h *HttpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	w.Write(data)
 
+}
+
+// shutdown do shutdown action to close http server
+func (h *HttpServer) shutdown(ctx context.Context) {
+	if h.httpsrv != nil {
+		h.httpsrv.Shutdown(ctx)
+	}
 }
 
 func getHeaderAsByte(req *http.Request, key string) []byte {

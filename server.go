@@ -305,6 +305,8 @@ type TcpServer struct {
 	selector *nettool.CustomListenerSelector
 
 	EnablePerformanceLog bool
+
+	httpServer *HttpServer
 }
 
 type serviceMeta struct {
@@ -366,6 +368,7 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 		log.Println("Enabled with http server mode.")
 		httpServerListener := selector.RegisterDefaultListener()
 		httpServer.serverHttp(httpServerListener)
+		s.httpServer = httpServer
 	}
 
 	// start customize listener
@@ -629,6 +632,9 @@ func (s *TcpServer) Stop() error {
 	}
 	if s.protocol != nil {
 		s.protocol.Stop()
+	}
+	if s.httpServer != nil {
+		s.httpServer.shutdown(context.Background())
 	}
 	return nil
 }
