@@ -57,6 +57,8 @@ const (
 	Reqeust_QPS_Expire = 300 //
 
 	Proto2_Version = "proto2"
+
+	Shutdown_Timeout = time.Second
 )
 
 // error log info definition
@@ -634,7 +636,9 @@ func (s *TcpServer) Stop() error {
 		s.protocol.Stop()
 	}
 	if s.httpServer != nil {
-		s.httpServer.shutdown(context.Background())
+		timeContext, cancelFN := context.WithTimeout(context.Background(), Shutdown_Timeout)
+		s.httpServer.shutdown(timeContext)
+		defer cancelFN()
 	}
 	return nil
 }
