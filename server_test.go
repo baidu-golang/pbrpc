@@ -16,8 +16,10 @@
 package baidurpc_test
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
 	. "github.com/smartystreets/goconvey/convey"
@@ -28,6 +30,8 @@ const (
 	PORT_1 = 1031
 	PORT_2 = 1032
 	PORT_3 = 1033
+
+	Shutdown_Timeout = time.Second
 )
 
 // createRpcServer create rpc server by port and localhost
@@ -55,7 +59,7 @@ func TestServerWithAuthenticate(t *testing.T) {
 		rpcServer.SetAuthService(authservice)
 		err := rpcServer.Start()
 		So(err, ShouldBeNil)
-		rpcServer.Stop()
+		stopRpcServer(rpcServer)
 		So(err, ShouldBeNil)
 	})
 }
@@ -67,7 +71,7 @@ func TestServerWithoutPublishMethods(t *testing.T) {
 		rpcServer := createRpcServer(PORT_2)
 		err := rpcServer.Start()
 		So(err, ShouldBeNil)
-		rpcServer.Stop()
+		stopRpcServer(rpcServer)
 		So(err, ShouldBeNil)
 	})
 }
@@ -84,7 +88,7 @@ func TestServerWithPublishMethods(t *testing.T) {
 
 			err := rpcServer.Start()
 			So(err, ShouldBeNil)
-			rpcServer.Stop()
+			stopRpcServer(rpcServer)
 			So(err, ShouldBeNil)
 		})
 
@@ -102,7 +106,7 @@ func TestServerWithPublishMethods(t *testing.T) {
 
 			err := rpcServer.Start()
 			So(err, ShouldBeNil)
-			rpcServer.Stop()
+			stopRpcServer(rpcServer)
 			So(err, ShouldBeNil)
 		})
 
@@ -172,10 +176,15 @@ func TestServerWithOldRegisterWay(t *testing.T) {
 
 		err := rpcServer.Start()
 		So(err, ShouldBeNil)
-		rpcServer.Stop()
+		stopRpcServer(rpcServer)
 		So(err, ShouldBeNil)
 	})
 
+}
+
+func stopRpcServer(rpcServer *baidurpc.TcpServer) {
+	timeContext, _ := context.WithTimeout(context.Background(), Shutdown_Timeout)
+	rpcServer.Stop(timeContext)
 }
 
 // Int convert to pointer type of int

@@ -44,7 +44,7 @@ const (
 func TestRpcStatus(t *testing.T) {
 	Convey("TestRpcStatus", t, func() {
 		tcpServer := startRpcServer(0)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		serviceName := baidurpc.RPC_STATUS_SERVICENAME
 		methodName := "Status"
@@ -65,7 +65,7 @@ func TestRpcStatus(t *testing.T) {
 func TestRpcRequestStatus(t *testing.T) {
 	Convey("TestRpcStatus", t, func() {
 		tcpServer := startRpcServer(0)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		serviceName := baidurpc.RPC_STATUS_SERVICENAME
 		methodName := "QpsDataStatus"

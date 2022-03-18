@@ -1,3 +1,8 @@
+/*
+ * @Author: Malin Xie
+ * @Description:
+ * @Date: 2021-08-25 19:33:37
+ */
 // Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
@@ -34,7 +39,7 @@ func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
 	port := PORT_1
 
 	tcpServer := startRpcServer(0)
-	defer tcpServer.Stop()
+	defer stopRpcServer(tcpServer)
 
 	conn, client, _ := createClient()
 	defer client.Close()
@@ -53,6 +58,7 @@ func BenchmarkTestLocalConnectionPerformance(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		doSimpleRPCInvokeWithSignature(client, "EchoService", "echo")
 	}
+
 }
 
 // doSimpleRPCInvokeWithSignature  send rpc request

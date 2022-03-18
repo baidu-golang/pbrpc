@@ -24,7 +24,7 @@ func TestHttpRpcServerWithPath(t *testing.T) {
 	Convey("test http mode with service not found", t, func() {
 
 		tcpServer := startRpcServerWithHttpMode(0, true)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		Convey("test http mode with bad prefix path", func() {
 			sport := strconv.Itoa(PORT_1)
@@ -62,7 +62,7 @@ func TestHttpRpcServer(t *testing.T) {
 	Convey("test http rpc with common request", t, func() {
 
 		tcpServer := startRpcServerWithHttpMode(0, true)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		sport := strconv.Itoa(PORT_1)
 		urlpath := "http://localhost:" + sport + "/rpc/EchoService/echo"
@@ -87,7 +87,7 @@ func TestHttpRpcServerWithAuthenticate(t *testing.T) {
 		tcpServer := startRpcServerWithHttpMode(0, true)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
 		tcpServer.SetTraceService(new(AddOneTraceService))
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		sport := strconv.Itoa(PORT_1)
 		urlpath := "http://localhost:" + sport + "/rpc/EchoService/echo"

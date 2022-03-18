@@ -423,7 +423,8 @@ func (s *TcpServer) StartAndBlock() error {
 	if err != nil {
 		return err
 	}
-	defer s.Stop()
+	timeContext, _ := context.WithTimeout(context.Background(), Shutdown_Timeout)
+	defer s.Stop(timeContext)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 
@@ -620,7 +621,7 @@ func GetServiceId(serviceName, methodName string) string {
 }
 
 // Stop do stop rpc server
-func (s *TcpServer) Stop() error {
+func (s *TcpServer) Stop(ctx context.Context) error {
 	s.stop = true
 	s.started = false
 	if s.selector != nil {
@@ -636,9 +637,7 @@ func (s *TcpServer) Stop() error {
 		s.protocol.Stop()
 	}
 	if s.httpServer != nil {
-		timeContext, cancelFN := context.WithTimeout(context.Background(), Shutdown_Timeout)
-		s.httpServer.shutdown(timeContext)
-		defer cancelFN()
+		s.httpServer.shutdown(ctx)
 	}
 	return nil
 }

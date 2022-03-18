@@ -19,7 +19,8 @@ import (
 )
 
 var (
-	nstring string = "KHJOSJDSDKSKD"
+	nstring          string = "KHJOSJDSDKSKD"
+	Shutdown_Timeout        = time.Second
 )
 
 func TestNewCustomListenerSelector(t *testing.T) {

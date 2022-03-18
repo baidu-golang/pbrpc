@@ -55,7 +55,7 @@ func (as *AddOneTraceService) Trace(service, name string, traceInfo *baidurpc.Tr
 func TestSingleTcpConnectionClient(t *testing.T) {
 	Convey("TestSingleTcpConnectionClient", t, func() {
 		tcpServer := startRpcServer(0)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createClient()
 		So(err, ShouldBeNil)
@@ -74,7 +74,7 @@ func TestSingleTcpConnectionClientWithAuthenticate(t *testing.T) {
 	Convey("TestSingleTcpConnectionClientWithAuthenticate", t, func() {
 		tcpServer := startRpcServer(0)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createClient()
 		So(err, ShouldBeNil)
@@ -93,7 +93,7 @@ func TestSingleTcpConnectionClientWithChunk(t *testing.T) {
 	Convey("TestSingleTcpConnectionClientWithChunk", t, func() {
 		tcpServer := startRpcServer(0)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createClient()
 		So(err, ShouldBeNil)
@@ -112,7 +112,7 @@ func TestSingleTcpConnectionClientAndServerWithChunk(t *testing.T) {
 	Convey("TestSingleTcpConnectionClientAndServerWithChunk", t, func() {
 		tcpServer := startRpcServer(20)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createClient()
 		So(err, ShouldBeNil)
@@ -130,7 +130,7 @@ func TestSingleTcpConnectionClientAndServerWithChunk(t *testing.T) {
 func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
 	Convey("TestSingleTcpConnectionClientWithBadChunkCase", t, func() {
 		tcpServer := startRpcServer(0)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createClient()
 		So(err, ShouldBeNil)
@@ -165,7 +165,7 @@ func TestSingleTcpConnectionClientWithBadChunkCase(t *testing.T) {
 func TestPooledTcpConnectionClient(t *testing.T) {
 	Convey("TestPooledTcpConnectionClient", t, func() {
 		tcpServer := startRpcServer(0)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createPooledConnectionClient()
 		So(err, ShouldBeNil)
@@ -184,7 +184,7 @@ func TestSingleTcpConnectionClientByAsync(t *testing.T) {
 	Convey("TestSingleTcpConnectionClientByAsync", t, func() {
 		tcpServer := startRpcServer(0)
 		tcpServer.SetAuthService(new(StringMatchAuthService))
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		conn, client, err := createClient()
 		So(err, ShouldBeNil)

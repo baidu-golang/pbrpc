@@ -34,9 +34,14 @@ import (
 	"net/rpc"
 	"reflect"
 	"strings"
+	"time"
 
 	baidurpc "github.com/baidu-golang/pbrpc"
 	"google.golang.org/protobuf/proto"
+)
+
+const (
+	Shutdown_Timeout = time.Second
 )
 
 // ExampleRpcServer
@@ -55,7 +60,7 @@ func ExampleRpcServer() {
 	rpcServer.RegisterNameWithMethodMapping("echoService", echoService, mapping)
 
 	rpcServer.Start()
-	defer rpcServer.Stop()
+	defer stopRpcServer(rpcServer)
 
 }
 
@@ -76,7 +81,7 @@ func ExampleRpcServerWithHttp() {
 	// start http rpc mode
 	rpcServer.EnableHttp()
 	rpcServer.Start()
-	defer rpcServer.Stop()
+	defer stopRpcServer(rpcServer)
 
 }
 
@@ -98,7 +103,7 @@ func ExampleRpcServerWithListener() {
 		return
 	}
 	rpcServer.StartServer(listener)
-	defer rpcServer.Stop()
+	defer stopRpcServer(rpcServer)
 
 }
 
@@ -138,7 +143,7 @@ func ExampleRpcServerRegisterWithCallback() {
 	rpcServer.RegisterRpc("echoService", "echo", callback, &DataMessage{})
 
 	rpcServer.Start()
-	defer rpcServer.Stop()
+	defer stopRpcServer(rpcServer)
 
 }
 
@@ -191,4 +196,9 @@ func DoRPCServer() {
 	rpc.ServeConn(conn) // 绑定tcp服务链接
 
 	fmt.Println("server started.")
+}
+
+func stopRpcServer(rpcServer *baidurpc.TcpServer) {
+	timeContext, _ := context.WithTimeout(context.Background(), Shutdown_Timeout)
+	rpcServer.Stop(timeContext)
 }

@@ -33,7 +33,7 @@ import (
 func TestHaClient(t *testing.T) {
 	Convey("TestSingleTcpConnectionClient", t, func() {
 		tcpServer := startRpcServer(0)
-		defer tcpServer.Stop()
+		defer stopRpcServer(tcpServer)
 
 		host := "localhost"
 		timeout := time.Second * 5
