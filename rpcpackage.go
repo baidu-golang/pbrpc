@@ -465,7 +465,15 @@ func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 	leftSize := totalSize
 	body := make([]byte, leftSize)
 
-	rw.Read(body)
+	// read all
+	receiveSize := 0
+	for receiveSize < int(leftSize) {
+		l, err := rw.Read(body[receiveSize:])
+		if err != nil {
+			return fmt.Errorf("Read body error %w ", err)
+		}
+		receiveSize += l
+	}
 
 	proto.Unmarshal(body[0:metaSize], r.Meta)
 
