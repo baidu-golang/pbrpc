@@ -132,12 +132,12 @@ func (r *RPCRequestStatus) Start() error {
 
 	// start time wheel to delete expire data
 	tw, err := timewheel.New(1*time.Second, uint16(r.expireAfterSecs))
-	r.tw = tw
-	r.tw.Start()
 	if err != nil {
 		r.started = false
 		return err
 	}
+	r.tw = tw
+	r.tw.Start()
 
 	for {
 		select {
