@@ -82,8 +82,8 @@ message Response {
 };
 
 messsage ChuckInfo {
-        required int64 stream_id = 1;
-        required int64 chunk_id = 2;
+    required int64 stream_id = 1;
+    required int64 chunk_id = 2;
 };
 
 3. <Data> customize transport data message.
@@ -402,9 +402,6 @@ func (r *RpcDataPackage) Write() ([]byte, error) {
 
 	rpcMetaSize := int32(len(metaBytes))
 	totalSize = totalSize + rpcMetaSize
-
-	r.Head.SetMetaSize(int32(rpcMetaSize))
-	r.Head.SetMessageSize(int32(totalSize)) // set message body size
 
 	r.Head.MessageSize = int32(totalSize)
 	r.Head.MetaSize = int32(rpcMetaSize)
