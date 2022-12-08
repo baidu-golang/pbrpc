@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/funny/link"
+	"github.com/jhunters/link"
 )
 
 var (
@@ -49,8 +49,8 @@ type ConnectionTester interface {
 type TCPConnection struct {
 	address      string
 	sendChanSize int
-	session      *link.Session
-	protocol     *RpcDataPackageProtocol
+	session      *link.Session[*RpcDataPackage, *RpcDataPackage]
+	protocol     *RpcDataPackageProtocol[*RpcDataPackage, *RpcDataPackage]
 }
 
 /*
@@ -95,13 +95,13 @@ func (c *TCPConnection) connect(url URL, timeout *time.Duration, sendChanSize in
 	return nil
 }
 
-func doConnect(address string, protocol *RpcDataPackageProtocol, timeout *time.Duration, sendChanSize int) (*link.Session, error) {
-	var session *link.Session
+func doConnect[S, R *RpcDataPackage](address string, protocol *RpcDataPackageProtocol[*RpcDataPackage, *RpcDataPackage], timeout *time.Duration, sendChanSize int) (*link.Session[*RpcDataPackage, *RpcDataPackage], error) {
+	var session *link.Session[*RpcDataPackage, *RpcDataPackage]
 	var err error
 	if timeout == nil {
-		session, err = link.Dial("tcp", address, protocol, sendChanSize)
+		session, err = link.Dial[*RpcDataPackage, *RpcDataPackage]("tcp", address, protocol, sendChanSize)
 	} else {
-		session, err = link.DialTimeout("tcp", address, *timeout, protocol, sendChanSize)
+		session, err = link.DialTimeout[*RpcDataPackage, *RpcDataPackage]("tcp", address, *timeout, protocol, sendChanSize)
 	}
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func (c *TCPConnection) Receive() (*RpcDataPackage, error) {
 	return doReceive(c.session)
 }
 
-func doReceive(session *link.Session) (rpcDataPackage *RpcDataPackage, err error) {
+func doReceive(session *link.Session[*RpcDataPackage, *RpcDataPackage]) (rpcDataPackage *RpcDataPackage, err error) {
 	rsp, err := session.Receive()
 	if err != nil {
 		return nil, err
@@ -173,8 +173,7 @@ func doReceive(session *link.Session) (rpcDataPackage *RpcDataPackage, err error
 		return nil, nil
 	}
 
-	r := rsp.(*RpcDataPackage)
-	return r, nil
+	return rsp, nil
 
 }
 

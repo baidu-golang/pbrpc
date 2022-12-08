@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/funny/link"
+	"github.com/jhunters/link"
 
 	"github.com/baidu-golang/pbrpc/nettool"
 	"google.golang.org/protobuf/proto"
@@ -292,13 +292,13 @@ type TcpServer struct {
 	servicesMeta map[string]*serviceMeta
 	started      bool
 	stop         bool
-	server       *link.Server
+	server       *link.Server[*RpcDataPackage, *RpcDataPackage]
 
 	requestStatus *RPCRequestStatus
 
 	authService AuthService
 
-	protocol *RpcDataPackageProtocol
+	protocol *RpcDataPackageProtocol[*RpcDataPackage, *RpcDataPackage]
 
 	traceService TraceService
 
@@ -345,7 +345,7 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 
 // StartServer start server with net.Listener
 func (s *TcpServer) StartServer(l net.Listener) error {
-	protocol, err := NewRpcDataPackageProtocol()
+	protocol, err := NewRpcDataPackageProtocol[*RpcDataPackage, *RpcDataPackage]()
 	protocol.chunkSize = s.serverMeta.ChunkSize
 	if s.serverMeta.TimeoutSeconds > 0 {
 		t := time.Duration(int64(s.serverMeta.TimeoutSeconds)) * time.Second
@@ -376,7 +376,7 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 	// start customize listener
 	go selector.Serve()
 
-	server := link.NewServer(rpcServerListener, protocol, 0 /* sync send */, link.HandlerFunc(s.handleResponse))
+	server := link.NewServer[*RpcDataPackage, *RpcDataPackage](rpcServerListener, protocol, 0 /* sync send */, link.HandlerFunc[*RpcDataPackage, *RpcDataPackage](s.handleResponse))
 	s.protocol = protocol
 	s.server = server
 	go server.Serve()
@@ -450,7 +450,7 @@ func (s *TcpServer) SetTraceService(traceService TraceService) {
 	s.traceService = traceService
 }
 
-func (s *TcpServer) handleResponse(session *link.Session) {
+func (s *TcpServer) handleResponse(session *link.Session[*RpcDataPackage, *RpcDataPackage]) {
 	// after function return must close session
 	defer func() {
 		session.Close()
@@ -468,17 +468,12 @@ func (s *TcpServer) handleResponse(session *link.Session) {
 			return
 		}
 
-		r, ok := req.(*RpcDataPackage)
-		if !ok {
-			return // convert error maybe type mismatch
-		}
-
-		go s.doHandleProcess(session, r)
+		go s.doHandleProcess(session, req)
 	}
 
 }
 
-func (s *TcpServer) doHandleProcess(session *link.Session, r *RpcDataPackage) error {
+func (s *TcpServer) doHandleProcess(session *link.Session[*RpcDataPackage, *RpcDataPackage], r *RpcDataPackage) error {
 	now := time.Now().UnixNano()
 	serviceName := r.GetMeta().GetRequest().GetServiceName()
 	methodName := r.GetMeta().GetRequest().GetMethodName()

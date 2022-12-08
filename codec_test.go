@@ -31,7 +31,7 @@ import (
 // TestCodecSend
 func TestCodecSend(t *testing.T) {
 	Convey("TestCodecSend", t, func() {
-		protocol := &baidurpc.RpcDataPackageProtocol{}
+		protocol := &baidurpc.RpcDataPackageProtocol[*baidurpc.RpcDataPackage, *baidurpc.RpcDataPackage]{}
 
 		buf := new(bytes.Buffer)
 
@@ -55,7 +55,7 @@ func TestCodecSend(t *testing.T) {
 func TestCodecReceive(t *testing.T) {
 
 	Convey("TestCodecReceive", t, func() {
-		protocol := &baidurpc.RpcDataPackageProtocol{}
+		protocol := &baidurpc.RpcDataPackageProtocol[*baidurpc.RpcDataPackage, *baidurpc.RpcDataPackage]{}
 
 		buf := new(bytes.Buffer)
 		// write prepare value to buf
@@ -68,7 +68,7 @@ func TestCodecReceive(t *testing.T) {
 
 		rsp, err := rpcDataPackagecodec.Receive()
 		So(err, ShouldBeNil)
-		mc := rsp.(*baidurpc.RpcDataPackage).GetMagicCode()
+		mc := rsp.GetMagicCode()
 		So(string(magicCode), ShouldEqual, string(mc))
 	})
 

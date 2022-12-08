@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/funny/link"
+	"github.com/jhunters/link"
 	"github.com/jhunters/timewheel"
 )
 
@@ -39,10 +39,10 @@ var (
 /*
  Codec implements for RpcDataPackage.
 */
-type RpcDataPackageCodec struct {
+type RpcDataPackageCodec[S, R *RpcDataPackage] struct {
 	readWriter io.ReadWriter
 	closer     io.Closer
-	p          *RpcDataPackageProtocol
+	p          *RpcDataPackageProtocol[S, R]
 	timeout    *time.Duration
 
 	chunkPackageCache map[int64]*RpcDataPackage
@@ -50,18 +50,16 @@ type RpcDataPackageCodec struct {
 
 // Here begin to implements link module Codec interface for RpcDataPackageCodec
 /*
-type Codec interface {
-	Receive() (interface{}, error)
-	Send(interface{}) error
+type Codec[S, R any] interface {
+	Receive() (R, error)
+	Send(S) error
 	Close() error
-	SetTimeout(timeout int)
 }
 */
 
 // send serialized data to target server by connection IO
 // msg: param 'msg' must type of RpcDataPackage
-func (r *RpcDataPackageCodec) Send(msg interface{}) error {
-
+func (r *RpcDataPackageCodec[S, R]) Send(msg *RpcDataPackage) error {
 	if msg == nil {
 		return errors.New("parameter 'msg' is nil")
 	}
@@ -118,7 +116,7 @@ func convertRpcDataPackage(msg interface{}, isPtr bool) *RpcDataPackage {
 // return param:
 // 1. RpcDataPackage unserialized from connection io. or nil if exception found
 // 2. a non-nil error if any io exception occured
-func (r *RpcDataPackageCodec) Receive() (interface{}, error) {
+func (r *RpcDataPackageCodec[S, R]) Receive() (*RpcDataPackage, error) {
 
 	rw := r.readWriter
 
@@ -131,7 +129,7 @@ func (r *RpcDataPackageCodec) Receive() (interface{}, error) {
 
 }
 
-func (r *RpcDataPackageCodec) doReceive(conn io.ReadWriter) (interface{}, error) {
+func (r *RpcDataPackageCodec[S, R]) doReceive(conn io.ReadWriter) (*RpcDataPackage, error) {
 	dataPackage := NewRpcDataPackage()
 	err := dataPackage.ReadIO(conn)
 	if err != nil {
@@ -190,7 +188,7 @@ func (r *RpcDataPackageCodec) doReceive(conn io.ReadWriter) (interface{}, error)
 
 // do close connection io
 // return non-nil if any error ocurred while doing close
-func (r *RpcDataPackageCodec) Close() error {
+func (r *RpcDataPackageCodec[S, R]) Close() error {
 	if r.closer != nil {
 		log.Printf(LOG_CLOSE_CONNECT_INFO, r.closer)
 		return r.closer.Close()
@@ -199,7 +197,7 @@ func (r *RpcDataPackageCodec) Close() error {
 }
 
 // set connection io read and write dead line
-func (r *RpcDataPackageCodec) SetTimeout(timeout *time.Duration) {
+func (r *RpcDataPackageCodec[S, R]) SetTimeout(timeout *time.Duration) {
 	r.timeout = timeout
 }
 
@@ -212,7 +210,7 @@ type Protocol interface {
 */
 
 // Protocol codec factory object for RpcDataPackage
-type RpcDataPackageProtocol struct {
+type RpcDataPackageProtocol[S, R *RpcDataPackage] struct {
 	timeout *time.Duration
 
 	tw *timewheel.TimeWheel
@@ -221,8 +219,8 @@ type RpcDataPackageProtocol struct {
 }
 
 // NewRpcDataPackageProtocol create a RpcDataPackageProtocol and start timewheel
-func NewRpcDataPackageProtocol() (*RpcDataPackageProtocol, error) {
-	protocol := &RpcDataPackageProtocol{}
+func NewRpcDataPackageProtocol[S, R *RpcDataPackage]() (*RpcDataPackageProtocol[S, R], error) {
+	protocol := &RpcDataPackageProtocol[S, R]{}
 	tw, err := timewheel.New(chunkExpireTimewheelInterval, uint16(chunkExpireTimeWheelSlot))
 	if err != nil {
 		return nil, err
@@ -232,8 +230,8 @@ func NewRpcDataPackageProtocol() (*RpcDataPackageProtocol, error) {
 	return protocol, nil
 }
 
-func (r *RpcDataPackageProtocol) NewCodec(rw io.ReadWriter) (link.Codec, error) {
-	rpcDataPackage := &RpcDataPackageCodec{
+func (r *RpcDataPackageProtocol[S, R]) NewCodec(rw io.ReadWriter) (link.Codec[*RpcDataPackage, *RpcDataPackage], error) {
+	rpcDataPackage := &RpcDataPackageCodec[S, R]{
 		readWriter:        rw,
 		p:                 r,
 		timeout:           r.timeout,
@@ -247,7 +245,7 @@ func (r *RpcDataPackageProtocol) NewCodec(rw io.ReadWriter) (link.Codec, error) 
 }
 
 // Stop
-func (r *RpcDataPackageProtocol) Stop() {
+func (r *RpcDataPackageProtocol[S, R]) Stop() {
 	if r.tw != nil {
 		r.tw.Stop()
 	}
