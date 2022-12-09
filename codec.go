@@ -20,8 +20,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"reflect"
-	"strings"
 	"time"
 
 	"github.com/jhunters/link"
@@ -59,24 +57,10 @@ type Codec[S, R any] interface {
 
 // send serialized data to target server by connection IO
 // msg: param 'msg' must type of RpcDataPackage
-func (r *RpcDataPackageCodec[S, R]) Send(msg *RpcDataPackage) error {
-	if msg == nil {
+func (r *RpcDataPackageCodec[S, R]) Send(dataPackage *RpcDataPackage) error {
+	if dataPackage == nil {
 		return errors.New("parameter 'msg' is nil")
 	}
-
-	v := reflect.ValueOf(msg)
-	isPtr := false
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-		isPtr = true
-	}
-
-	name := v.Type().String()
-	if !strings.Contains(name, REQUIRED_TYPE) {
-		return errInvalidType
-	}
-
-	dataPackage := convertRpcDataPackage(msg, isPtr)
 
 	rw := r.readWriter
 	if r.timeout != nil {
@@ -101,15 +85,6 @@ func (r *RpcDataPackageCodec[S, R]) Send(msg *RpcDataPackage) error {
 		}
 	}
 	return nil
-}
-
-func convertRpcDataPackage(msg interface{}, isPtr bool) *RpcDataPackage {
-	if isPtr {
-		return msg.(*RpcDataPackage)
-	}
-
-	ret := msg.(RpcDataPackage)
-	return &ret
 }
 
 // receive serialized data to target server by connection IO
@@ -203,8 +178,8 @@ func (r *RpcDataPackageCodec[S, R]) SetTimeout(timeout *time.Duration) {
 
 // Here begin to implements link module Protocol interface  for RpcDataPackageCodec
 /*
-type Protocol interface {
-	NewCodec(rw io.ReadWriter) (Codec, error)
+type Protocol[S, R any] interface {
+	NewCodec(rw io.ReadWriter) (Codec[S, R], error)
 }
 
 */

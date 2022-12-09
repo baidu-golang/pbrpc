@@ -140,23 +140,23 @@ func parsePbMetaFromType(t reflect.Type) []*PbFieldMeta {
 		// check if if map
 		pbtag := tagstruct.Get("protobuf")
 		meta := parseMetaString(pbtag)
-		if meta != nil {
-			metas = append(metas, meta)
-			mapKey := tagstruct.Get("protobuf_key")
-			mapValue := tagstruct.Get("protobuf_val")
-			if len(mapKey) > 0 && len(mapValue) > 0 {
-				meta.SubFieldMeta = make([]*PbFieldMeta, 2)
-				meta.SubFieldMeta[0] = parseMetaString(mapKey)
-				meta.SubFieldMeta[1] = parseMetaString(mapValue)
-				meta.HasSub = true
-			}
-
-			subType := t.Field(i).Type
-			if matched, _ := isMessageType(subType); matched {
-				meta.SubFieldMeta = parsePbMetaFromType(subType)
-			}
+		if meta == nil {
+			continue
+		}
+		metas = append(metas, meta)
+		mapKey := tagstruct.Get("protobuf_key")
+		mapValue := tagstruct.Get("protobuf_val")
+		if len(mapKey) > 0 && len(mapValue) > 0 {
+			meta.SubFieldMeta = make([]*PbFieldMeta, 2)
+			meta.SubFieldMeta[0] = parseMetaString(mapKey)
+			meta.SubFieldMeta[1] = parseMetaString(mapValue)
+			meta.HasSub = true
 		}
 
+		subType := t.Field(i).Type
+		if matched, _ := isMessageType(subType); matched {
+			meta.SubFieldMeta = parsePbMetaFromType(subType)
+		}
 	}
 	return metas
 }
@@ -345,7 +345,7 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 
 // StartServer start server with net.Listener
 func (s *TcpServer) StartServer(l net.Listener) error {
-	protocol, err := NewRpcDataPackageProtocol[*RpcDataPackage, *RpcDataPackage]()
+	protocol, err := NewRpcDataPackageProtocol()
 	protocol.chunkSize = s.serverMeta.ChunkSize
 	if s.serverMeta.TimeoutSeconds > 0 {
 		t := time.Duration(int64(s.serverMeta.TimeoutSeconds)) * time.Second

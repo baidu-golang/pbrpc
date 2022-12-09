@@ -325,11 +325,10 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 	if c.asyncMode {
 		ch := make(chan *RpcDataPackage, 1)
 		c.requestCallState.Store(correlationId, ch)
-		// c.requestCallState[correlationId] = ch
 
 		if timeout > 0 {
 			go c.asyncRequest(timeout, rpcDataPackage, ch)
-			rsp = <-ch
+			rsp = <-ch //异步等待返回， 可能返回的情况 1. 本地错误或超时返回 2. startLoopReceive 监听远程数据返回
 		} else {
 			rsp, err = c.doSendReceive(rpcDataPackage, ch)
 		}
