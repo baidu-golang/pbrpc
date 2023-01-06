@@ -136,7 +136,7 @@ func (server *CustomListenerSelector) Serve() error {
 
 			// read Head
 			head := make([]byte, server.headSize)
-			r.Read(head)
+			io.ReadFull(r, head)
 			cw := &ConnWrapper{conn, head, 0, server.headSize}
 			netinfo := NetInfo{cw, nil}
 
