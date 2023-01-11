@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"google.golang.org/protobuf/proto"
 	"github.com/jhunters/timewheel"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -32,7 +32,7 @@ var (
 	defaultTimewheelSlot     = 300
 
 	ERR_NEED_INIT             = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
-	ERR_RESPONSE_NIL          = errors.New("[client-003]No response result, mybe net work break error")
+	ERR_RESPONSE_NIL          = errors.New("[client-003]No response result, mybe net work broken error")
 	LOG_SERVER_REPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
 	LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 
@@ -200,7 +200,10 @@ func (c *RpcClient) startLoopReceive() {
 					// if met network error, wait some time to retry or call client close method to close loop if met net error
 					// error maybe about broken network or closed network
 					log.Println(netErr)
-					c.Session.Reconnect() // try reconnect
+					if !netErr.Timeout() {
+						// try reconnect
+						c.Session.Reconnect()
+					}
 
 				}
 				time.Sleep(200 * time.Millisecond)
