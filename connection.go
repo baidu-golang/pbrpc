@@ -192,11 +192,12 @@ func (c *TCPConnection) Close() error {
 
 // Reconnect do connect by saved info
 func (c *TCPConnection) Reconnect() error {
-
+	Info("try to reconnect to server", c.address)
 	session, err := doConnect(c.address, c.protocol, c.protocol.timeout, c.sendChanSize)
 	if err != nil {
 		return err
 	}
+	Info("reconnect success to server", c.address)
 	c.session = session
 	return nil
 }

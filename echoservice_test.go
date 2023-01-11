@@ -73,7 +73,7 @@ func (rpc *EchoService) EchoWithAttchement(c context.Context, in *DataMessage) (
 	// return result
 	dm := DataMessage{Name: ret}
 
-	att := "I am a attachement" + string(attachement)
+	att := "I am a attachement, " + string(attachement)
 
 	// bind attachment
 	cc := baidurpc.BindAttachement(context.Background(), []byte(att))
