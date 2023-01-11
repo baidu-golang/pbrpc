@@ -353,7 +353,7 @@ func doSimpleRPCInvokeWithSignatureWithConvey(rpcClient *baidurpc.RpcClient, ser
 		So(expect, ShouldEqual, parameterOut.Name)
 
 		if withAttachement {
-			So(string(response.Attachment), ShouldEqual, "I am a attachementThis is attachment data")
+			So(string(response.Attachment), ShouldEqual, "I am a attachement, This is attachment data")
 		}
 
 		So(response.GetTraceId(), ShouldEqual, rpcInvocation.TraceId+1)
