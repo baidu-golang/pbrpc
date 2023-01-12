@@ -27,7 +27,7 @@ func TestNewCustomListenerSelector(t *testing.T) {
 
 	Convey("Test NewCustomListenerSelector", t, func() {
 		Convey("Test NewCustomListenerSelector with host and port", func() {
-			selector, err := nettool.NewCustomListenerSelector("tcp", "", 1033, 8, nettool.Equal_Mode)
+			selector, err := nettool.NewCustomListenerSelector("tcp", "", 1039, 8, nettool.Equal_Mode)
 			So(err, ShouldBeNil)
 			So(selector, ShouldNotBeNil)
 			go selector.Serve()
