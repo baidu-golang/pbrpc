@@ -1,4 +1,4 @@
-// Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+// Go support for Protocol Buffers RPC which compatible with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
 //

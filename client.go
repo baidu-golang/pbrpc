@@ -1,4 +1,4 @@
-// Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+// Go support for Protocol Buffers RPC which compatible with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
 //
@@ -34,7 +34,7 @@ var (
 
 	errNeedInit               = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
 	errResponseNil            = errors.New("[client-003]No response result, mybe net work broken error")
-	LOG_SERVER_REPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
+	LOG_SERVER_RESPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
 	LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 
 	closedTimeOut = time.Duration(0)
@@ -363,7 +363,7 @@ func (c *RpcClient) SendRpcRequestWithTimeout(timeout time.Duration, rpcInvocati
 
 	errorCode := r.GetMeta().GetResponse().GetErrorCode()
 	if errorCode > 0 {
-		errMsg := fmt.Sprintf(LOG_SERVER_REPONSE_ERROR,
+		errMsg := fmt.Sprintf(LOG_SERVER_RESPONSE_ERROR,
 			errorCode, r.GetMeta().GetResponse().GetErrorText())
 		return r, errors.New(errMsg)
 	}

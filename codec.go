@@ -1,4 +1,4 @@
-// Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+// Go support for Protocol Buffers RPC which compatible with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
 //
@@ -90,7 +90,7 @@ func (r *RpcDataPackageCodec[S, R]) Send(dataPackage *RpcDataPackage) error {
 // receive serialized data to target server by connection IO
 // return param:
 // 1. RpcDataPackage unserialized from connection io. or nil if exception found
-// 2. a non-nil error if any io exception occured
+// 2. a non-nil error if any io exception occurred
 func (r *RpcDataPackageCodec[S, R]) Receive() (*RpcDataPackage, error) {
 
 	rw := r.readWriter

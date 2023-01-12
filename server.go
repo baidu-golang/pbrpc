@@ -1,4 +1,4 @@
-// Go support for Protocol Buffers RPC which compatiable with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
+// Go support for Protocol Buffers RPC which compatible with https://github.com/Baidu-ecom/Jprotobuf-rpc-socket
 //
 // Copyright 2002-2007 the original author or authors.
 //
@@ -74,7 +74,7 @@ var (
 	LOG_TIMECOST_INFO       = "[server-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 	LOG_TIMECOST_INFO2      = "[server-102]Server name '%s' method '%s' process cost '%.5g' seconds.(without net cost) "
 
-	DEAFULT_IDLE_TIME_OUT_SECONDS = 10
+	DEFAULT_IDLE_TIME_OUT_SECONDS = 10
 
 	m           proto.Message
 	MessageType = reflect.TypeOf(m)
@@ -326,7 +326,7 @@ func NewTpcServer(serverMeta *ServerMeta) *TcpServer {
 	tcpServer.stop = false
 
 	if serverMeta.IdleTimeoutSeconds == nil {
-		serverMeta.IdleTimeoutSeconds = &DEAFULT_IDLE_TIME_OUT_SECONDS
+		serverMeta.IdleTimeoutSeconds = &DEFAULT_IDLE_TIME_OUT_SECONDS
 	}
 
 	if serverMeta.QPSExpireInSecs <= 0 {
