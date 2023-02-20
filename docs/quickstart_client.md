@@ -75,3 +75,4 @@ $ go get github.com/baidu-golang/pbrpc
 	fmt.Println(*parameterOut.Name)
 ```
 
+ [查看代码](https://github.com/baidu-golang/pbrpc/blob/master/example/client_example_test.go) <br>

@@ -69,3 +69,5 @@ $ go get github.com/baidu-golang/pbrpc
 		baidurpc.Error(err)
 	}
 ```
+
+ [查看代码](https://github.com/baidu-golang/pbrpc/blob/master/example/server_example_test.go) <br>
