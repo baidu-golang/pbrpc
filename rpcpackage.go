@@ -6,7 +6,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,8 +37,8 @@ var (
 )
 
 /*
- Data package for baidu RPC.
- all request and response data package should apply this.
+	Data package for baidu RPC.
+	all request and response data package should apply this.
 
 -----------------------------------
 | Head | Meta | Data | Attachment |
@@ -52,44 +52,45 @@ MessageSize = totalSize - 12(Fixed Head Size)
 MetaSize = Meta object size
 
 2. <Meta> body proto description as follow
-message RpcMeta {
-    optional Request request = 1;
-    optional Response response = 2;
-    optional int32 compress_type = 3; // 0:nocompress 1:Snappy 2:gzip
-    optional int64 correlation_id = 4;
-    optional int32 attachment_size = 5;
-    optional ChuckInfo chuck_info = 6;
-    optional bytes authentication_data = 7;
-};
 
-message Request {
-    required string service_name = 1;
-    required string method_name = 2;
-    optional int64 log_id = 3;
-	optional int64 traceId=4;
-	optional int64 spanId=5;
-	optional int64 parentSpanId=6;
-	repeat RpcRequestMetaExtField extFields = 7;
-};
+	message RpcMeta {
+	    optional Request request = 1;
+	    optional Response response = 2;
+	    optional int32 compress_type = 3; // 0:nocompress 1:Snappy 2:gzip
+	    optional int64 correlation_id = 4;
+	    optional int32 attachment_size = 5;
+	    optional ChuckInfo chuck_info = 6;
+	    optional bytes authentication_data = 7;
+	};
 
-message RpcRequestMetaExtField {
-	optional string key = 1;
-	optional string value = 2;
-}
-message Response {
-    optional int32 error_code = 1;
-    optional string error_text = 2;
-};
+	message Request {
+	    required string service_name = 1;
+	    required string method_name = 2;
+	    optional int64 log_id = 3;
+		optional int64 traceId=4;
+		optional int64 spanId=5;
+		optional int64 parentSpanId=6;
+		repeat RpcRequestMetaExtField extFields = 7;
+	};
 
-messsage ChuckInfo {
-    required int64 stream_id = 1;
-    required int64 chunk_id = 2;
-};
+	message RpcRequestMetaExtField {
+		optional string key = 1;
+		optional string value = 2;
+	}
+
+	message Response {
+	    optional int32 error_code = 1;
+	    optional string error_text = 2;
+	};
+
+	messsage ChuckInfo {
+	    required int64 stream_id = 1;
+	    required int64 chunk_id = 2;
+	};
 
 3. <Data> customize transport data message.
 
 4. <Attachment> attachment body data message
-
 */
 type RpcDataPackage struct {
 	Head       *Header  // rpc head
@@ -101,6 +102,7 @@ type RpcDataPackage struct {
 	chunkSize uint32
 }
 
+// NewRpcDataPackage returns  a new RpcDataPackage and init all fields
 func NewRpcDataPackage() *RpcDataPackage {
 	data := RpcDataPackage{}
 	doInit(&data)
@@ -110,6 +112,24 @@ func NewRpcDataPackage() *RpcDataPackage {
 	return &data
 }
 
+// Clear to clear and init all fields
+func (r *RpcDataPackage) Clear() {
+	r.Head = &Header{}
+	r.Meta = &RpcMeta{}
+	request := r.Meta.Request
+	if request == nil {
+		r.Meta.Request = &Request{}
+	}
+	response := r.Meta.Response
+	if response == nil {
+		r.Meta.Response = &Response{}
+	}
+	r.Data = nil
+	r.Attachment = nil
+	r.ClearChunkStatus()
+}
+
+// MagicCode set magic code field
 func (r *RpcDataPackage) MagicCode(magicCode string) {
 	if len(magicCode) != 4 {
 		return
@@ -120,6 +140,7 @@ func (r *RpcDataPackage) MagicCode(magicCode string) {
 
 }
 
+// GetMagicCode return magic code value
 func (r *RpcDataPackage) GetMagicCode() string {
 	initHeader(r)
 	return string(r.Head.GetMagicCode())
@@ -165,6 +186,7 @@ func initResponse(r *RpcDataPackage) {
 
 }
 
+// ServiceName set service name field
 func (r *RpcDataPackage) ServiceName(serviceName string) *RpcDataPackage {
 	initRequest(r)
 
@@ -173,6 +195,7 @@ func (r *RpcDataPackage) ServiceName(serviceName string) *RpcDataPackage {
 	return r
 }
 
+// MethodName set method name field
 func (r *RpcDataPackage) MethodName(methodName string) *RpcDataPackage {
 	initRequest(r)
 
@@ -181,16 +204,19 @@ func (r *RpcDataPackage) MethodName(methodName string) *RpcDataPackage {
 	return r
 }
 
+// SetData set data
 func (r *RpcDataPackage) SetData(Data []byte) *RpcDataPackage {
 	r.Data = Data
 	return r
 }
 
+// SetAttachment set attachment
 func (r *RpcDataPackage) SetAttachment(Attachment []byte) *RpcDataPackage {
 	r.Attachment = Attachment
 	return r
 }
 
+// AuthenticationData set authentication data
 func (r *RpcDataPackage) AuthenticationData(authenticationData []byte) *RpcDataPackage {
 	initRpcMeta(r)
 
@@ -198,6 +224,7 @@ func (r *RpcDataPackage) AuthenticationData(authenticationData []byte) *RpcDataP
 	return r
 }
 
+// CorrelationId set correlationId data
 func (r *RpcDataPackage) CorrelationId(correlationId int64) *RpcDataPackage {
 	initRpcMeta(r)
 
@@ -205,6 +232,7 @@ func (r *RpcDataPackage) CorrelationId(correlationId int64) *RpcDataPackage {
 	return r
 }
 
+// CompressType set compress type data
 func (r *RpcDataPackage) CompressType(compressType int32) *RpcDataPackage {
 	initRpcMeta(r)
 
@@ -212,6 +240,7 @@ func (r *RpcDataPackage) CompressType(compressType int32) *RpcDataPackage {
 	return r
 }
 
+// LogId set log id data
 func (r *RpcDataPackage) LogId(logId int64) *RpcDataPackage {
 	initRequest(r)
 
@@ -220,44 +249,52 @@ func (r *RpcDataPackage) LogId(logId int64) *RpcDataPackage {
 	return r
 }
 
+// GetLogId return log id
 func (r *RpcDataPackage) GetLogId() int64 {
 	initRequest(r)
 	return r.Meta.Request.GetLogId()
 }
 
+// TraceId set trace id data
 func (r *RpcDataPackage) TraceId(traceId int64) *RpcDataPackage {
 	initRequest(r)
 	r.Meta.Request.TraceId = traceId
 	return r
 }
 
+// GetTraceId return trace id
 func (r *RpcDataPackage) GetTraceId() int64 {
 	initRequest(r)
 	return r.Meta.Request.TraceId
 }
 
+// SpanId set span id
 func (r *RpcDataPackage) SpanId(spanId int64) *RpcDataPackage {
 	initRequest(r)
 	r.Meta.Request.SpanId = spanId
 	return r
 }
 
+// GetSpanId return span id
 func (r *RpcDataPackage) GetSpanId() int64 {
 	initRequest(r)
 	return r.Meta.Request.SpanId
 }
 
+// ParentSpanId set parent span id
 func (r *RpcDataPackage) ParentSpanId(parentSpanId int64) *RpcDataPackage {
 	initRequest(r)
 	r.Meta.Request.ParentSpanId = parentSpanId
 	return r
 }
 
+// GetParentSpanId return parent span id
 func (r *RpcDataPackage) GetParentSpanId() int64 {
 	initRequest(r)
 	return r.Meta.Request.ParentSpanId
 }
 
+// RpcRequestMetaExt set rpc request meta extendsion fields
 func (r *RpcDataPackage) RpcRequestMetaExt(ext map[string]string) *RpcDataPackage {
 	initRequest(r)
 	extMap := make([]*RpcRequestMetaExtField, 0)
@@ -269,6 +306,7 @@ func (r *RpcDataPackage) RpcRequestMetaExt(ext map[string]string) *RpcDataPackag
 	return r
 }
 
+// GetRpcRequestMetaExt return rpc request meta extendstion
 func (r *RpcDataPackage) GetRpcRequestMetaExt() map[string]string {
 	initRequest(r)
 	ret := make(map[string]string)
@@ -279,6 +317,7 @@ func (r *RpcDataPackage) GetRpcRequestMetaExt() map[string]string {
 	return ret
 }
 
+// ErrorCode set error code field
 func (r *RpcDataPackage) ErrorCode(errorCode int32) *RpcDataPackage {
 	initResponse(r)
 
@@ -287,6 +326,7 @@ func (r *RpcDataPackage) ErrorCode(errorCode int32) *RpcDataPackage {
 	return r
 }
 
+// ErrorText set error text field
 func (r *RpcDataPackage) ErrorText(errorText string) *RpcDataPackage {
 	initResponse(r)
 
@@ -295,6 +335,7 @@ func (r *RpcDataPackage) ErrorText(errorText string) *RpcDataPackage {
 	return r
 }
 
+// ExtraParams set extra parameters field
 func (r *RpcDataPackage) ExtraParams(extraParams []byte) *RpcDataPackage {
 	initRequest(r)
 
@@ -303,6 +344,7 @@ func (r *RpcDataPackage) ExtraParams(extraParams []byte) *RpcDataPackage {
 	return r
 }
 
+// ChuckInfo set chuck info
 func (r *RpcDataPackage) ChuckInfo(streamId int64, chunkId int64) *RpcDataPackage {
 	ChuckInfo := ChunkInfo{}
 	ChuckInfo.StreamId = streamId
@@ -318,6 +360,7 @@ func doInit(r *RpcDataPackage) {
 	initResponse(r)
 }
 
+// GetHead return Header data
 func (r *RpcDataPackage) GetHead() *Header {
 	if r.Head == nil {
 		return nil
@@ -325,6 +368,7 @@ func (r *RpcDataPackage) GetHead() *Header {
 	return r.Head
 }
 
+// GetMeta return RpcMeta data
 func (r *RpcDataPackage) GetMeta() *RpcMeta {
 	if r.Meta == nil {
 		return nil
@@ -332,16 +376,18 @@ func (r *RpcDataPackage) GetMeta() *RpcMeta {
 	return r.Meta
 }
 
+// GetData return data field
 func (r *RpcDataPackage) GetData() []byte {
 	return r.Data
 }
 
+// GetAttachment return attachment field
 func (r *RpcDataPackage) GetAttachment() []byte {
 	return r.Attachment
 }
 
 /*
-  Convert RpcPackage to byte array
+Convert RpcPackage to byte array
 */
 func (r *RpcDataPackage) WriteIO(rw io.Writer) error {
 
@@ -359,7 +405,7 @@ func (r *RpcDataPackage) WriteIO(rw io.Writer) error {
 }
 
 /*
-  Convert RpcPackage to byte array
+Convert RpcPackage to byte array
 */
 func (r *RpcDataPackage) Write() ([]byte, error) {
 	doInit(r)
@@ -501,6 +547,7 @@ func (r *RpcDataPackage) ReadIO(rw io.Reader) error {
 	return nil
 }
 
+// Read and parse data from target byte slice
 func (r *RpcDataPackage) Read(b []byte) error {
 
 	if b == nil {
@@ -562,7 +609,7 @@ func (r *RpcDataPackage) Chunk(chunkSize int) []*RpcDataPackage {
 	return ret
 }
 
-// GetChunkStreamId
+// GetChunkStreamId return chunk stream id
 func (r *RpcDataPackage) GetChunkStreamId() int64 {
 	initRpcMeta(r)
 	return r.Meta.ChuckInfo.GetStreamId()
@@ -574,16 +621,17 @@ func (r *RpcDataPackage) getChunkId() int64 {
 	return r.Meta.ChuckInfo.GetChunkId()
 }
 
-// IsChunkPackage
+// IsChunkPackage return if chunk package type
 func (r *RpcDataPackage) IsChunkPackage() bool {
 	return r.GetChunkStreamId() != 0
 }
 
-// IsFinalPackage
+// IsFinalPackage return if the final chunk package
 func (r *RpcDataPackage) IsFinalPackage() bool {
 	return r.getChunkId() == -1
 }
 
+// ClearChunkStatus to clear chunk status
 func (r *RpcDataPackage) ClearChunkStatus() {
 	r.ChuckInfo(0, 0)
 }

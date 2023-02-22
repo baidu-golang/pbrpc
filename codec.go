@@ -6,7 +6,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/jhunters/goassist/concurrent/syncx"
 	"github.com/jhunters/link"
 	"github.com/jhunters/timewheel"
 )
@@ -29,13 +30,16 @@ import (
 const REQUIRED_TYPE = "baidurpc.RpcDataPackage"
 
 var (
-	errInvalidType          = errors.New("[codec-001]type mismatch, target type should be 'baidurpc.RpcDataPackage'")
 	LOG_CLOSE_CONNECT_INFO  = "[codec-100]Do close connection. connection info:%v"
 	chunkPackageCacheExpire = 60 * time.Second
+
+	dataPackagePool = syncx.NewPool(func() *RpcDataPackage {
+		return NewRpcDataPackage()
+	})
 )
 
 /*
- Codec implements for RpcDataPackage.
+Codec implements for RpcDataPackage.
 */
 type RpcDataPackageCodec[S, R *RpcDataPackage] struct {
 	readWriter io.ReadWriter
@@ -105,7 +109,11 @@ func (r *RpcDataPackageCodec[S, R]) Receive() (*RpcDataPackage, error) {
 }
 
 func (r *RpcDataPackageCodec[S, R]) doReceive(conn io.ReadWriter) (*RpcDataPackage, error) {
-	dataPackage := NewRpcDataPackage()
+
+	dataPackage := dataPackagePool.Get()
+	dataPackage.Clear()
+	defer dataPackagePool.Put(dataPackage)
+
 	err := dataPackage.ReadIO(conn)
 	if err != nil {
 		if err == errIgnoreErr {
