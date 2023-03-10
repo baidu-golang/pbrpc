@@ -6,7 +6,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/jhunters/goassist/concurrent/syncx"
 	"github.com/jhunters/timewheel"
 	"google.golang.org/protobuf/proto"
 )
@@ -34,7 +34,7 @@ var (
 
 	errNeedInit               = errors.New("[client-001]Session is not initialized, Please use NewRpcInvocation() to create instance")
 	errResponseNil            = errors.New("[client-003]No response result, mybe net work broken error")
-	LOG_SERVER_RESPONSE_ERROR  = "[client-002]Server response error. code=%d, msg='%s'"
+	LOG_SERVER_RESPONSE_ERROR = "[client-002]Server response error. code=%d, msg='%s'"
 	LOG_CLIENT_TIMECOUST_INFO = "[client-101]Server name '%s' method '%s' process cost '%.5g' seconds"
 
 	closedTimeOut = time.Duration(0)
@@ -54,7 +54,7 @@ type RpcClient struct {
 	// 单次请求唯一标识
 	correlationId int64
 	// async request state map
-	requestCallState sync.Map //  use sync map for cocurrent access
+	requestCallState *syncx.Map[int64, chan *RpcDataPackage] //  use sync map for cocurrent access
 
 	// to close loop receive
 	closeChan chan bool
@@ -114,7 +114,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
 	c.tw.Start()
 	c.closeChan = make(chan bool, 1)
-	c.requestCallState = sync.Map{} // make(map[int64]chan *RpcDataPackage)
+	c.requestCallState = syncx.NewMap[int64, chan *RpcDataPackage]() // make(map[int64]chan *RpcDataPackage)
 
 	if c.asyncMode { // only enabled on async mode
 		go c.startLoopReceive()
@@ -221,9 +221,8 @@ func (c *RpcClient) startLoopReceive() {
 					Errorf("bad correlationId '%d' not exist ", correlationId)
 					continue
 				}
-				ch := v.(chan *RpcDataPackage)
 				go func() {
-					ch <- dataPackage
+					v <- dataPackage
 				}()
 			}
 		}
