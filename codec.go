@@ -22,7 +22,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/jhunters/goassist/concurrent/syncx"
 	"github.com/jhunters/link"
 	"github.com/jhunters/timewheel"
 )
@@ -30,12 +29,9 @@ import (
 const REQUIRED_TYPE = "baidurpc.RpcDataPackage"
 
 var (
+	errInvalidType          = errors.New("[codec-001]type mismatch, target type should be 'baidurpc.RpcDataPackage'")
 	LOG_CLOSE_CONNECT_INFO  = "[codec-100]Do close connection. connection info:%v"
 	chunkPackageCacheExpire = 60 * time.Second
-
-	dataPackagePool = syncx.NewPool(func() *RpcDataPackage {
-		return NewRpcDataPackage()
-	})
 )
 
 /*
@@ -109,11 +105,7 @@ func (r *RpcDataPackageCodec[S, R]) Receive() (*RpcDataPackage, error) {
 }
 
 func (r *RpcDataPackageCodec[S, R]) doReceive(conn io.ReadWriter) (*RpcDataPackage, error) {
-
-	dataPackage := dataPackagePool.Get()
-	dataPackage.Clear()
-	defer dataPackagePool.Put(dataPackage)
-
+	dataPackage := NewRpcDataPackage()
 	err := dataPackage.ReadIO(conn)
 	if err != nil {
 		if err == errIgnoreErr {
