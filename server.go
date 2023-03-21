@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jhunters/goassist/concurrent/syncx"
 	"github.com/jhunters/goassist/netutil"
 	"github.com/jhunters/link"
 
@@ -81,6 +82,11 @@ var (
 
 	chunkExpireTimewheelInterval = 1 * time.Second
 	chunkExpireTimeWheelSlot     = 300
+
+	// object pool for RpcDataPackage
+	dataPackagePool = syncx.NewPool(func() *RpcDataPackage {
+		return NewRpcDataPackage()
+	})
 )
 
 type ServerMeta struct {
@@ -478,6 +484,9 @@ func (s *TcpServer) doHandleProcess(session *link.Session[*RpcDataPackage, *RpcD
 	serviceName := r.GetMeta().GetRequest().GetServiceName()
 	methodName := r.GetMeta().GetRequest().GetMethodName()
 	defer func() {
+		// return to object pool
+		dataPackagePool.Put(r)
+		// catch panic and log
 		if p := recover(); p != nil {
 			err := fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", serviceName, methodName, p)
 			log.Println(err.Error())
