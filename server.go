@@ -551,12 +551,16 @@ func (s *TcpServer) doHandleProcess(session *link.Session[*RpcDataPackage, *RpcD
 	if ec.err != nil {
 		err = ec.err
 	}
-	if err != nil {
+	if err != nil { // return response with error message
 		wrapResponse(r, ST_ERROR, err.Error())
 		err := session.Send(r)
 		if err != nil {
 			Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 			return err
+		}
+		if s.EnablePerformanceLog {
+			took2 := TimetookInSeconds(now2.Unix())
+			Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
 		}
 		return nil
 	}

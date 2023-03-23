@@ -114,8 +114,8 @@ func NewRpcDataPackage() *RpcDataPackage {
 
 // Clear to clear and init all fields
 func (r *RpcDataPackage) Clear() {
-	r.Head = &Header{}
-	r.Meta = &RpcMeta{}
+	// r.Head = &Header{}
+	// r.Meta = &RpcMeta{}
 	request := r.Meta.Request
 	if request == nil {
 		r.Meta.Request = &Request{}
