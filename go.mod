@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang/snappy v0.0.4
-	github.com/jhunters/goassist v1.0.7
+	github.com/jhunters/goassist v1.0.9
 	github.com/jhunters/timewheel v0.0.0-20211126093422-92949def4c3f
 	github.com/jolestar/go-commons-pool/v2 v2.1.1
 	github.com/smartystreets/goconvey v1.7.2
