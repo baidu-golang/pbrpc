@@ -96,7 +96,7 @@ type RPCRequestStatus struct {
 
 	started bool
 
-	tw *timewheel.TimeWheel
+	tw *timewheel.TimeWheel[request]
 }
 
 type request struct {
@@ -131,7 +131,7 @@ func (r *RPCRequestStatus) Start() error {
 	r.started = true
 
 	// start time wheel to delete expire data
-	tw, err := timewheel.New(1*time.Second, uint16(r.expireAfterSecs))
+	tw, err := timewheel.New[request](1*time.Second, uint16(r.expireAfterSecs))
 	if err != nil {
 		r.started = false
 		return err
@@ -152,10 +152,10 @@ func (r *RPCRequestStatus) Start() error {
 			if !ok {
 				count = int32(m.count)
 				// add task
-				task := timewheel.Task{
+				task := timewheel.Task[request]{
 					Data: m,
-					TimeoutCallback: func(tt timewheel.Task) { // call back function on time out
-						k := tt.Data.(request)
+					TimeoutCallback: func(tt timewheel.Task[request]) { // call back function on time out
+						k := tt.Data
 						r.expire(k.method, k.t)
 
 					}}

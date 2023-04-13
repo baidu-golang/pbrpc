@@ -6,7 +6,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,13 +29,12 @@ import (
 const REQUIRED_TYPE = "baidurpc.RpcDataPackage"
 
 var (
-	errInvalidType          = errors.New("[codec-001]type mismatch, target type should be 'baidurpc.RpcDataPackage'")
 	LOG_CLOSE_CONNECT_INFO  = "[codec-100]Do close connection. connection info:%v"
 	chunkPackageCacheExpire = 60 * time.Second
 )
 
 /*
- Codec implements for RpcDataPackage.
+Codec implements for RpcDataPackage.
 */
 type RpcDataPackageCodec[S, R *RpcDataPackage] struct {
 	readWriter io.ReadWriter
@@ -105,7 +104,8 @@ func (r *RpcDataPackageCodec[S, R]) Receive() (*RpcDataPackage, error) {
 }
 
 func (r *RpcDataPackageCodec[S, R]) doReceive(conn io.ReadWriter) (*RpcDataPackage, error) {
-	dataPackage := NewRpcDataPackage()
+	dataPackage := dataPackagePool.Get()
+	dataPackage.Clear()
 	err := dataPackage.ReadIO(conn)
 	if err != nil {
 		if err == errIgnoreErr {
@@ -129,10 +129,10 @@ func (r *RpcDataPackageCodec[S, R]) doReceive(conn io.ReadWriter) (*RpcDataPacka
 			cachedPackage = dataPackage
 
 			// add task
-			task := timewheel.Task{
+			task := timewheel.Task[int64]{
 				Data: streamId,
-				TimeoutCallback: func(tt timewheel.Task) { // call back function on time out
-					k := tt.Data.(int64)
+				TimeoutCallback: func(tt timewheel.Task[int64]) { // call back function on time out
+					k := tt.Data
 					delete(r.chunkPackageCache, k)
 				}}
 			// add task and return unique task id
@@ -188,7 +188,7 @@ type Protocol[S, R any] interface {
 type RpcDataPackageProtocol[S, R *RpcDataPackage] struct {
 	timeout *time.Duration
 
-	tw *timewheel.TimeWheel
+	tw *timewheel.TimeWheel[int64]
 
 	chunkSize uint32
 }
@@ -196,7 +196,7 @@ type RpcDataPackageProtocol[S, R *RpcDataPackage] struct {
 // NewRpcDataPackageProtocol create a RpcDataPackageProtocol and start timewheel
 func NewRpcDataPackageProtocol[S, R *RpcDataPackage]() (*RpcDataPackageProtocol[S, R], error) {
 	protocol := &RpcDataPackageProtocol[S, R]{}
-	tw, err := timewheel.New(chunkExpireTimewheelInterval, uint16(chunkExpireTimeWheelSlot))
+	tw, err := timewheel.New[int64](chunkExpireTimewheelInterval, uint16(chunkExpireTimeWheelSlot))
 	if err != nil {
 		return nil, err
 	}

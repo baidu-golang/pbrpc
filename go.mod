@@ -3,8 +3,9 @@ module github.com/baidu-golang/pbrpc
 go 1.18
 
 require (
-	github.com/golang/snappy v0.0.3
-	github.com/jhunters/timewheel v0.0.0-20210716021958-85ae0cfe1074
+	github.com/golang/snappy v0.0.4
+	github.com/jhunters/goassist v1.0.9
+	github.com/jhunters/timewheel v1.1.0
 	github.com/jolestar/go-commons-pool/v2 v2.1.1
 	github.com/smartystreets/goconvey v1.7.2
 	google.golang.org/protobuf v1.26.0

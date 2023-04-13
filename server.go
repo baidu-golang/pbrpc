@@ -6,7 +6,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,9 +29,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jhunters/goassist/concurrent/syncx"
+	"github.com/jhunters/goassist/netutil"
 	"github.com/jhunters/link"
 
-	"github.com/baidu-golang/pbrpc/nettool"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -81,6 +82,11 @@ var (
 
 	chunkExpireTimewheelInterval = 1 * time.Second
 	chunkExpireTimeWheelSlot     = 300
+
+	// object pool for RpcDataPackage
+	dataPackagePool = syncx.NewPool(func() *RpcDataPackage {
+		return NewRpcDataPackage()
+	})
 )
 
 type ServerMeta struct {
@@ -304,7 +310,7 @@ type TcpServer struct {
 
 	enableHttp bool
 
-	selector *nettool.CustomListenerSelector
+	selector *netutil.CustomListenerSelector
 
 	EnablePerformanceLog bool
 
@@ -355,7 +361,7 @@ func (s *TcpServer) StartServer(l net.Listener) error {
 		return err
 	}
 
-	selector, err := nettool.NewCustomListenerSelectorByListener(l, 4, nettool.Equal_Mode)
+	selector, err := netutil.NewCustomListenerSelectorByListener(l, 4, netutil.Equal_Mode)
 	if err != nil {
 		return err
 	}
@@ -478,6 +484,9 @@ func (s *TcpServer) doHandleProcess(session *link.Session[*RpcDataPackage, *RpcD
 	serviceName := r.GetMeta().GetRequest().GetServiceName()
 	methodName := r.GetMeta().GetRequest().GetMethodName()
 	defer func() {
+		// return to object pool
+		dataPackagePool.Put(r)
+		// catch panic and log
 		if p := recover(); p != nil {
 			err := fmt.Errorf("RPC server '%v' method '%v' got a internal error: %v", serviceName, methodName, p)
 			log.Println(err.Error())
@@ -542,12 +551,16 @@ func (s *TcpServer) doHandleProcess(session *link.Session[*RpcDataPackage, *RpcD
 	if ec.err != nil {
 		err = ec.err
 	}
-	if err != nil {
+	if err != nil { // return response with error message
 		wrapResponse(r, ST_ERROR, err.Error())
 		err := session.Send(r)
 		if err != nil {
 			Error(errResponseToClient.Error(), "sessionId=", session.ID(), err)
 			return err
+		}
+		if s.EnablePerformanceLog {
+			took2 := TimetookInSeconds(now2.Unix())
+			Infof(LOG_TIMECOST_INFO2, serviceName, methodName, took2)
 		}
 		return nil
 	}
@@ -688,9 +701,10 @@ func (s *TcpServer) RegisterNameWithMethodMapping(name string, rcvr interface{},
 
 // RegisterName register publishes in the server with specified name for its set of methods of the
 // receiver value that satisfy the following conditions:
-//	- exported method of exported type
-//	- one argument, exported type  and should be the type implements from proto.Message
-//	- one return value, of type proto.Message
+//   - exported method of exported type
+//   - one argument, exported type  and should be the type implements from proto.Message
+//   - one return value, of type proto.Message
+//
 // It returns an error if the receiver is not an exported type or has
 // no suitable methods. It also logs the error using package log.
 // The client accesses each method using a string of the form "Type.Method",
