@@ -49,7 +49,7 @@ RPC client invoke
 */
 type RpcClient struct {
 	Session Connection
-	tw      *timewheel.TimeWheel
+	tw      *timewheel.TimeWheel[*RpcDataPackage]
 
 	// 单次请求唯一标识
 	correlationId int64
@@ -111,7 +111,7 @@ func NewRpcCientWithTimeWheelSetting(connection Connection, timewheelInterval ti
 	c.asyncMode = !pooled
 
 	// initial timewheel to process async request on time out event handle
-	c.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
+	c.tw, _ = timewheel.New[*RpcDataPackage](timewheelInterval, timewheelSlot)
 	c.tw.Start()
 	c.closeChan = make(chan bool, 1)
 	c.requestCallState = syncx.NewMap[int64, chan *RpcDataPackage]() // make(map[int64]chan *RpcDataPackage)
@@ -242,14 +242,14 @@ func (c *RpcClient) safeReceive() (*RpcDataPackage, error) {
 // asyncRequest
 func (c *RpcClient) asyncRequest(timeout time.Duration, request *RpcDataPackage, ch chan *RpcDataPackage) {
 	// create a task bind with key, data and  time out call back function.
-	t := &timewheel.Task{
-		Data: nil, // business data
-		TimeoutCallback: func(task timewheel.Task) { // call back function on time out
+	t := &timewheel.Task[*RpcDataPackage]{
+		Data: request, // business data
+		TimeoutCallback: func(task timewheel.Task[*RpcDataPackage]) { // call back function on time out
 			// process someting after time out happened.
 			errorcode := int32(ST_READ_TIMEOUT)
-			request.ErrorCode(errorcode)
+			task.Data.ErrorCode(errorcode)
 			errormsg := fmt.Sprintf("request time out of %v", task.Delay())
-			request.ErrorText(errormsg)
+			task.Data.ErrorText(errormsg)
 			ch <- request
 		}}
 

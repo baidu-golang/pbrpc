@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/protobuf/proto"
 	"github.com/jhunters/timewheel"
+	"google.golang.org/protobuf/proto"
 )
 
 // HaRpcClient high avialbe RpcClient
@@ -39,7 +39,7 @@ type HaRpcClient struct {
 
 	locker sync.Mutex
 
-	tw *timewheel.TimeWheel
+	tw *timewheel.TimeWheel[*RpcDataPackage]
 }
 
 // NewBatchTCPConnection to create batch connection
@@ -88,7 +88,7 @@ func NewHaRpcCientWithTimewheelSetting(connections []Connection, timewheelInterv
 		rpcClients[idx] = rpcClient
 	}
 	result := &HaRpcClient{rpcClients: rpcClients, current: 0}
-	result.tw, _ = timewheel.New(timewheelInterval, timewheelSlot)
+	result.tw, _ = timewheel.New[*RpcDataPackage](timewheelInterval, timewheelSlot)
 	result.tw.Start()
 	return result, nil
 }
@@ -163,9 +163,9 @@ func (c *HaRpcClient) asyncRequest(timeout time.Duration, rpcInvocation *RpcInvo
 	}
 
 	// create a task bind with key, data and  time out call back function.
-	t := &timewheel.Task{
+	t := &timewheel.Task[*RpcDataPackage]{
 		Data: nil, // business data
-		TimeoutCallback: func(task timewheel.Task) { // call back function on time out
+		TimeoutCallback: func(task timewheel.Task[*RpcDataPackage]) { // call back function on time out
 			// process someting after time out happened.
 			errorcode := int32(ST_READ_TIMEOUT)
 			request.ErrorCode(errorcode)
