@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/jhunters/goassist/concurrent/syncx"
+	"github.com/jhunters/goassist/conv"
 	"github.com/jhunters/timewheel"
 	"google.golang.org/protobuf/proto"
 )
@@ -135,8 +136,7 @@ func (r *RpcInvocation) init(serviceName, methodName *string) {
 	*r = RpcInvocation{}
 	r.ServiceName = serviceName
 	r.MethodName = methodName
-	compressType := COMPRESS_NO
-	r.CompressType = &compressType
+	r.CompressType = conv.ToPtr(COMPRESS_NO)
 	r.ParameterIn = nil
 }
 

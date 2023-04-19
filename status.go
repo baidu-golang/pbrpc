@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jhunters/goassist/concurrent/syncx"
 	"github.com/jhunters/timewheel"
 )
 
@@ -77,7 +78,7 @@ func (hsv *HttpStatusView) QpsDataStatus(c context.Context, method *RPCMethod) (
 	ret := &QpsData{Qpsinfo: make(map[int64]int32)}
 	requestStatus, ok := hsv.server.requestStatus.Methods[serviceId]
 	if ok {
-		ret.Qpsinfo = requestStatus.QpsStatus
+		ret.Qpsinfo = requestStatus.QpsStatus.ToMap()
 	}
 	// add current current
 	ret.Qpsinfo[time.Now().Unix()] += 0
@@ -107,7 +108,7 @@ type request struct {
 
 // RPCMethodReuqestStatus
 type RPCMethodReuqestStatus struct {
-	QpsStatus map[int64]int32
+	QpsStatus *syncx.Map[int64, int32]
 }
 
 // NewRPCRequestStatus
@@ -119,7 +120,8 @@ func NewRPCRequestStatus(services map[string]Service) *RPCRequestStatus {
 	}
 
 	for name := range services {
-		ret.Methods[name] = &RPCMethodReuqestStatus{QpsStatus: make(map[int64]int32, 1024)}
+		status := syncx.NewMap[int64, int32]()
+		ret.Methods[name] = &RPCMethodReuqestStatus{QpsStatus: status}
 	}
 
 	return ret
@@ -144,11 +146,12 @@ func (r *RPCRequestStatus) Start() error {
 		case m := <-r.reqeustChan:
 			status, ok := r.Methods[m.method]
 			if !ok {
-				status = &RPCMethodReuqestStatus{QpsStatus: make(map[int64]int32, 1024)}
+				qpsstatus := syncx.NewMap[int64, int32]()
+				status = &RPCMethodReuqestStatus{QpsStatus: qpsstatus}
 				r.Methods[m.method] = status
 			}
 			k := m.t.Unix()
-			count, ok := status.QpsStatus[k]
+			count, ok := status.QpsStatus.Load(k)
 			if !ok {
 				count = int32(m.count)
 				// add task
@@ -164,7 +167,7 @@ func (r *RPCRequestStatus) Start() error {
 			} else {
 				count += int32(m.count)
 			}
-			status.QpsStatus[k] = count
+			status.QpsStatus.Store(k, count)
 
 		case <-r.closeChan:
 			r.started = false
@@ -189,7 +192,7 @@ func (r *RPCRequestStatus) RequestIn(methodName string, t time.Time, count int) 
 func (r *RPCRequestStatus) expire(methodName string, t time.Time) {
 	status, ok := r.Methods[methodName]
 	if ok {
-		delete(status.QpsStatus, t.Unix())
+		status.QpsStatus.Delete(t.Unix())
 	}
 }
 
