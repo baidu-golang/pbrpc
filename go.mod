@@ -8,7 +8,7 @@ require (
 	github.com/jhunters/timewheel v1.1.0
 	github.com/jolestar/go-commons-pool/v2 v2.1.1
 	github.com/smartystreets/goconvey v1.7.2
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
